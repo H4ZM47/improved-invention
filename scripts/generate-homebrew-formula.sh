@@ -39,7 +39,7 @@ class Grind < Formula
   end
 
   test do
-    assert_match "version=", shell_output("#{bin}/grind version")
+    assert_match "version=", shell_output("#{bin}/grind --version")
   end
 end
 EOF

@@ -1,5 +1,5 @@
 {
-  "command": "grind version",
+  "command": "grind --version",
   "data": {
     "commit": "abc123",
     "date": "2026-04-21",

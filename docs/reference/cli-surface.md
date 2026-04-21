@@ -30,9 +30,21 @@ Examples in docs, scripts, and tests should use `grind ...` as the canonical com
 - The root command owns the primary task workflow because the executable itself is already named `grind`.
 - Additional top-level commands are nouns that map to first-class product concepts or platform functions.
 - Leaf commands are verbs such as `create`, `list`, `show`, `update`, `claim`, or `export`.
+- Purely informational root affordances should use `--option` flags rather than noun-style commands.
 - Commands should favor explicit flags over positional magic when non-interactive automation is expected.
 - A command that mutates state must be runnable without prompts.
 - Human prompts are additive behavior, not the only path to completing work.
+
+## Root Informational Flags
+
+The canonical root-level informational surfaces are:
+
+- `grind --version`
+- `grind --config`
+- `grind --agents`
+- `grind --agent-help`
+
+These are treated as option-style entrypoints rather than command groups because they expose root metadata, configuration, or built-in documentation rather than a first-class resource workflow.
 
 ## Top-Level Command Groups
 
@@ -183,6 +195,10 @@ Every top-level command group should be designed to support a consistent shared 
 - `--db <path>`: override the resolved database path
 - `--actor <ref>`: identify the acting human or agent when explicit override is needed
 - `--quiet`: suppress non-essential human-oriented output
+- `--version`: show build information and exit
+- `--config`: show resolved runtime configuration and exit
+- `--agents`: show the built-in agent operating guide and exit
+- `--agent-help`: alias for `--agents`
 
 ## Reference Style
 

@@ -118,8 +118,9 @@ grind update TASK-1042 --title "Revised title" --no-input --json
 ### Configuration And Introspection
 
 ```text
-grind config show --json
-grind version --json
+grind --config --json
+grind --version --json
+grind --agents --json
 ```
 
 ## Compatibility Policy

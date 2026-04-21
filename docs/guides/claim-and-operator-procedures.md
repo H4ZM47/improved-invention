@@ -15,7 +15,7 @@ Claims are exclusive task locks.
 Inspect the current lease setting:
 
 ```sh
-grind config show --json
+grind --config --json
 ```
 
 ## Normal Claim Lifecycle
