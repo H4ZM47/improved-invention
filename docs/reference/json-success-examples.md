@@ -153,12 +153,12 @@ Successful machine-readable responses use a stable top-level envelope:
 }
 ```
 
-## Example: `grind version --json`
+## Example: `grind --version --json`
 
 ```json
 {
   "ok": true,
-  "command": "grind version",
+  "command": "grind --version",
   "data": {
     "version": "dev",
     "commit": "unknown",

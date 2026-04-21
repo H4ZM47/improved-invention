@@ -46,8 +46,8 @@ Each release includes:
 Example:
 
 ```sh
-grind version
-grind config show
+grind --version
+grind --config
 ```
 
 ### Homebrew
@@ -129,6 +129,12 @@ That contract is documented in:
 - [JSON Error Examples](docs/reference/json-error-examples.md)
 - [Exit Codes](docs/reference/exit-codes.md)
 
+Built-in agent instructions are also available directly from the CLI:
+
+```sh
+grind --agents
+```
+
 ## Core concepts
 
 ### Tasks
@@ -176,7 +182,7 @@ Common commands:
 - `grind relationship ...`, `grind link ...`
 - `grind view ...`, `grind export ...`, `grind report serve`
 - `grind backup create`, `grind restore apply`
-- `grind config show`, `grind version`
+- `grind --config`, `grind --version`, `grind --agents`
 
 Global flags:
 

@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +25,7 @@ func TestRunVersionJSONMatchesGolden(t *testing.T) {
 		Version: "1.2.3",
 		Commit:  "abc123",
 		Date:    "2026-04-21",
-	}, []string{"--json", "version"}, &stdout, &stderr)
+	}, []string{"--json", "--version"}, &stdout, &stderr)
 
 	if got, want := exitCode, 0; got != want {
 		t.Fatalf("exitCode = %d, want %d", got, want)
@@ -33,6 +34,110 @@ func TestRunVersionJSONMatchesGolden(t *testing.T) {
 		t.Fatalf("stderr = %q, want empty", stderr.String())
 	}
 	assertGoldenFile(t, "version_success.json.golden", stdout.String())
+}
+
+func TestRunAgentInstructionsText(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--agents"}, &stdout, &stderr)
+
+	if got, want := exitCode, 0; got != want {
+		t.Fatalf("exitCode = %d, want %d", got, want)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{"Grind agent instructions", "--no-input", "--agent-help", "docs/guides/agent-integration.md"}) {
+		t.Fatalf("stdout = %q, want agent instructions", got)
+	}
+}
+
+func TestRunConfigJSONUsesRootFlag(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--json", "--config", "--db", "/tmp/task.db", "--actor", "codex:agent-7"}, &stdout, &stderr)
+	if got, want := exitCode, 0; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"command": "grind --config"`, `"/tmp/task.db"`, `"effective_actor": "codex:agent-7"`}) {
+		t.Fatalf("stdout = %q, want root config payload", got)
+	}
+}
+
+func TestRunRetiredVersionCommandReturnsGuidance(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"version"}, &stdout, &stderr)
+	if got, want := exitCode, 10; got != want {
+		t.Fatalf("exitCode = %d, want %d", got, want)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if got := stderr.String(); !containsAll(got, []string{"grind version", "grind --version"}) {
+		t.Fatalf("stderr = %q, want migration guidance", got)
+	}
+}
+
+func TestRunRetiredConfigCommandJSONReturnsGuidance(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--json", "config", "show"}, &stdout, &stderr)
+	if got, want := exitCode, 10; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_ARGS"`, "`grind config show` was removed", "`grind --config`"}) {
+		t.Fatalf("stdout = %q, want migration guidance", got)
+	}
+}
+
+func TestRunAgentInstructionsJSON(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--agent-help", "--json"}, &stdout, &stderr)
+
+	if got, want := exitCode, 0; got != want {
+		t.Fatalf("exitCode = %d, want %d", got, want)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"command": "grind --agents"`, `"title": "Grind agent instructions"`, `"--agent-help"`, `"docs/guides/agent-integration.md"`}) {
+		t.Fatalf("stdout = %q, want JSON agent instructions", got)
+	}
+}
+
+func TestClassifyFailureTreatsWrappedDatabaseLockAsBusy(t *testing.T) {
+	t.Parallel()
+
+	failure := classifyFailure(errors.New("ping sqlite database: database is locked"), "grind claim")
+	if got, want := failure.Code, "DATABASE_BUSY"; got != want {
+		t.Fatalf("failure.Code = %q, want %q", got, want)
+	}
+	if got, want := failure.ExitCode, 81; got != want {
+		t.Fatalf("failure.ExitCode = %d, want %d", got, want)
+	}
 }
 
 func TestRunViewApplyMissingJSONMatchesGolden(t *testing.T) {

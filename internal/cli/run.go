@@ -26,9 +26,30 @@ type failureClass struct {
 // Run executes the CLI with centralized exit-code and JSON error handling.
 func Run(build BuildInfo, args []string, stdout io.Writer, stderr io.Writer) int {
 	root, opts := newRootCommandWithOptions(build)
+	applyRootFlagOverridesFromArgs(opts, args)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 	root.SetArgs(args)
+
+	jsonRequested := opts.JSON || argsContainFlag(args, "--json")
+	if argsContainFlag(args, "--version") {
+		if err := writeVersionInfo(stdout, build, jsonRequested); err != nil {
+			return writeFailure(stdout, stderr, jsonRequested, "grind --version", err)
+		}
+		return 0
+	}
+	if argsContainFlag(args, "--config") {
+		if err := writeConfigInfo(stdout, opts); err != nil {
+			return writeFailure(stdout, stderr, jsonRequested, "grind --config", err)
+		}
+		return 0
+	}
+	if argsContainFlag(args, "--agents") || argsContainFlag(args, "--agent-help") {
+		if err := writeAgentInstructions(stdout, jsonRequested); err != nil {
+			return writeFailure(stdout, stderr, jsonRequested, "grind --agents", err)
+		}
+		return 0
+	}
 
 	cmd, err := root.ExecuteC()
 	if err == nil {
@@ -40,7 +61,6 @@ func Run(build BuildInfo, args []string, stdout io.Writer, stderr io.Writer) int
 		commandName = cmd.CommandPath()
 	}
 
-	jsonRequested := opts.JSON || argsContainFlag(args, "--json")
 	failure := classifyFailure(err, commandName)
 
 	if jsonRequested {
@@ -58,6 +78,25 @@ func Run(build BuildInfo, args []string, stdout io.Writer, stderr io.Writer) int
 	}
 
 	_, _ = fmt.Fprintln(stderr, failure.Message)
+	return failure.ExitCode
+}
+
+func writeFailure(stdout io.Writer, stderr io.Writer, jsonRequested bool, commandName string, err error) int {
+	failure := classifyFailure(err, commandName)
+	if jsonRequested {
+		_ = writeJSONTo(stdout, map[string]any{
+			"ok":      false,
+			"command": commandName,
+			"error": map[string]any{
+				"code":      failure.Code,
+				"exit_code": failure.ExitCode,
+				"message":   failure.Message,
+				"details":   failure.Details,
+			},
+		})
+	} else {
+		_, _ = fmt.Fprintln(stderr, failure.Message)
+	}
 	return failure.ExitCode
 }
 
@@ -106,10 +145,10 @@ func classifyFailure(err error, commandName string) failureClass {
 		failure.Code, failure.ExitCode = "EXPORT_FAILED", 70
 	case isMigrationError(err):
 		failure.Code, failure.ExitCode = "MIGRATION_FAILED", 82
-	case isDatabaseUnavailableError(err):
-		failure.Code, failure.ExitCode = "DATABASE_UNAVAILABLE", 80
 	case isDatabaseBusyError(err):
 		failure.Code, failure.ExitCode = "DATABASE_BUSY", 81
+	case isDatabaseUnavailableError(err):
+		failure.Code, failure.ExitCode = "DATABASE_UNAVAILABLE", 80
 	case isValidationError(err):
 		failure.Code, failure.ExitCode = "VALIDATION_ERROR", 11
 	}
@@ -133,6 +172,7 @@ func isInvalidArgsError(err error) bool {
 		strings.Contains(msg, "requires at least") ||
 		strings.Contains(msg, "requires exactly") ||
 		strings.Contains(msg, "requires --") ||
+		strings.Contains(msg, "was removed; use") ||
 		strings.Contains(msg, "argument")
 }
 
@@ -512,6 +552,43 @@ func argsContainFlag(args []string, flag string) bool {
 		}
 	}
 	return false
+}
+
+func applyRootFlagOverridesFromArgs(opts *GlobalOptions, args []string) {
+	if opts == nil {
+		return
+	}
+
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+
+		switch {
+		case arg == "--json":
+			opts.JSON = true
+		case arg == "--no-input":
+			opts.NoInput = true
+		case arg == "--quiet":
+			opts.Quiet = true
+		case arg == "--agents":
+			opts.Agents = true
+		case arg == "--agent-help":
+			opts.AgentHelp = true
+		case arg == "--version":
+			opts.Version = true
+		case arg == "--config":
+			opts.Config = true
+		case arg == "--db" && index+1 < len(args):
+			index++
+			opts.DBPath = args[index]
+		case strings.HasPrefix(arg, "--db="):
+			opts.DBPath = strings.TrimPrefix(arg, "--db=")
+		case arg == "--actor" && index+1 < len(args):
+			index++
+			opts.Actor = args[index]
+		case strings.HasPrefix(arg, "--actor="):
+			opts.Actor = strings.TrimPrefix(arg, "--actor=")
+		}
+	}
 }
 
 func writeJSONTo(out io.Writer, payload map[string]any) error {

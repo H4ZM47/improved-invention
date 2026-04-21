@@ -20,13 +20,13 @@ Build the local binary:
 
 ```sh
 make build
-./dist/grind version
+./dist/grind --version
 ```
 
 Or run the CLI directly from source during development:
 
 ```sh
-go run ./cmd/grind version
+go run ./cmd/grind --version
 ```
 
 ### Use A Release Archive
@@ -57,7 +57,7 @@ Grind resolves configuration in this order:
 Inspect the resolved runtime configuration:
 
 ```sh
-grind config show --json
+grind --config --json
 ```
 
 Supported environment variables:
@@ -81,7 +81,7 @@ Default locations:
 The database and schema are created automatically on first use. A minimal bootstrap flow is:
 
 ```sh
-grind config show
+grind --config
 grind create "First task"
 grind list
 ```
@@ -111,8 +111,8 @@ grind claim TASK-1 --actor codex:agent-7 --json
 These commands confirm that the installation is usable:
 
 ```sh
-grind version --json
-grind config show --json
+grind --version --json
+grind --config --json
 grind create "Installation smoke test" --json
 grind list --json
 ```

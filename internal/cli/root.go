@@ -11,11 +11,15 @@ type BuildInfo struct {
 
 // GlobalOptions are shared across all commands.
 type GlobalOptions struct {
-	JSON    bool
-	NoInput bool
-	DBPath  string
-	Actor   string
-	Quiet   bool
+	JSON      bool
+	NoInput   bool
+	DBPath    string
+	Actor     string
+	Quiet     bool
+	Agents    bool
+	AgentHelp bool
+	Version   bool
+	Config    bool
 }
 
 // Execute runs the Grind root command.
@@ -38,6 +42,18 @@ func newRootCommandWithOptions(build BuildInfo) (*cobra.Command, *GlobalOptions)
 		Short:         "Local-first task management for humans and AI agents",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if opts.Agents || opts.AgentHelp {
+				return writeAgentInstructions(cmd.OutOrStdout(), opts.JSON)
+			}
+			if opts.Version {
+				return writeVersionInfo(cmd.OutOrStdout(), build, opts.JSON)
+			}
+			if opts.Config {
+				return writeConfigInfo(cmd.OutOrStdout(), opts)
+			}
+			return cmd.Help()
+		},
 	}
 
 	flags := cmd.PersistentFlags()
@@ -46,6 +62,10 @@ func newRootCommandWithOptions(build BuildInfo) (*cobra.Command, *GlobalOptions)
 	flags.StringVar(&opts.DBPath, "db", "", "Override the resolved database path")
 	flags.StringVar(&opts.Actor, "actor", "", "Override the acting human or agent reference")
 	flags.BoolVar(&opts.Quiet, "quiet", false, "Suppress non-essential human-oriented output")
+	flags.BoolVar(&opts.Version, "version", false, "Show build information and exit")
+	flags.BoolVar(&opts.Config, "config", false, "Show resolved runtime configuration and exit")
+	flags.BoolVar(&opts.Agents, "agents", false, "Show the built-in guide for agent-safe Grind usage")
+	flags.BoolVar(&opts.AgentHelp, "agent-help", false, "Alias for --agents")
 
 	cmd.AddCommand(
 		newTaskCreateCommand(opts),
@@ -71,8 +91,10 @@ func newRootCommandWithOptions(build BuildInfo) (*cobra.Command, *GlobalOptions)
 		newReportCommand(opts),
 		newBackupCommand(opts),
 		newRestoreCommand(opts),
-		newConfigCommand(opts),
-		newVersionCommand(build, opts),
+		newRetiredConfigCommand(),
+		newRetiredVersionCommand(),
+		newRetiredAgentsCommand(),
+		newRetiredAgentdocsCommand(),
 	)
 
 	return cmd, opts
