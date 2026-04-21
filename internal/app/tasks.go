@@ -15,6 +15,18 @@ type TaskManager struct {
 	CurrentActorRef string
 }
 
+// AssignmentDecisionRequiredError signals that a reclassification needs an explicit assignee choice.
+type AssignmentDecisionRequiredError struct {
+	TaskHandle            string
+	DomainHandle          *string
+	ProjectHandle         *string
+	DefaultAssigneeHandle *string
+}
+
+func (e *AssignmentDecisionRequiredError) Error() string {
+	return "changing classification requires an explicit assignee decision"
+}
+
 // Create creates a new task with low-friction title-only capture.
 func (m TaskManager) Create(ctx context.Context, req CreateTaskRequest) (TaskRecord, error) {
 	actorID, err := m.resolveCurrentActorID(ctx)
@@ -22,9 +34,24 @@ func (m TaskManager) Create(ctx context.Context, req CreateTaskRequest) (TaskRec
 		return TaskRecord{}, err
 	}
 
+	classification, err := m.resolveClassification(ctx, nil, req.DomainRef, req.ProjectRef)
+	if err != nil {
+		return TaskRecord{}, err
+	}
+
+	assigneeRef := req.AssigneeRef
+	if assigneeRef == nil && classification.defaultAssigneeHandle != nil {
+		assigneeRef = classification.defaultAssigneeHandle
+	}
+
 	task, err := taskdb.CreateTask(ctx, m.DB, taskdb.TaskCreateInput{
 		Title:       req.Title,
 		Description: req.Description,
+		Tags:        req.Tags,
+		DomainRef:   classification.domainRef,
+		ProjectRef:  classification.projectRef,
+		AssigneeRef: assigneeRef,
+		DueAt:       req.DueAt,
 		ActorID:     actorID,
 	})
 	if err != nil {
@@ -65,13 +92,45 @@ func (m TaskManager) Update(ctx context.Context, req UpdateTaskRequest) (TaskRec
 		return TaskRecord{}, err
 	}
 
+	current, err := taskdb.FindTask(ctx, m.DB, req.Reference)
+	if err != nil {
+		return TaskRecord{}, fmt.Errorf("find task %q: %w", req.Reference, err)
+	}
+
+	classification, err := m.resolveClassification(ctx, &current, req.DomainRef, req.ProjectRef)
+	if err != nil {
+		return TaskRecord{}, err
+	}
+
+	assigneeRef := req.AssigneeRef
+	classificationChanged := changedStringPointer(current.DomainUUID, classification.domainUUID) || changedStringPointer(current.ProjectUUID, classification.projectUUID)
+	defaultWouldChangeAssignee := classification.defaultAssigneeUUID != nil && changedStringPointer(current.AssigneeUUID, classification.defaultAssigneeUUID)
+	if assigneeRef == nil && classificationChanged && defaultWouldChangeAssignee {
+		switch {
+		case req.AcceptDefaultAssignee:
+			assigneeRef = classification.defaultAssigneeHandle
+		case req.KeepAssignee:
+			// keep the current assignee unchanged
+		default:
+			return TaskRecord{}, &AssignmentDecisionRequiredError{
+				TaskHandle:            current.Handle,
+				DomainHandle:          classification.domainHandle,
+				ProjectHandle:         classification.projectHandle,
+				DefaultAssigneeHandle: classification.defaultAssigneeHandle,
+			}
+		}
+	} else if assigneeRef == nil && req.AcceptDefaultAssignee && classification.defaultAssigneeHandle != nil {
+		assigneeRef = classification.defaultAssigneeHandle
+	}
+
 	task, err := taskdb.UpdateTask(ctx, m.DB, taskdb.TaskUpdateInput{
 		Reference:   req.Reference,
 		Title:       req.Title,
 		Description: req.Description,
 		Tags:        req.Tags,
-		DomainRef:   req.DomainRef,
-		ProjectRef:  req.ProjectRef,
+		DomainRef:   classification.domainRef,
+		ProjectRef:  classification.projectRef,
+		AssigneeRef: assigneeRef,
 		DueAt:       req.DueAt,
 		Status:      req.Status,
 		ActorID:     actorID,
@@ -208,6 +267,136 @@ func toTaskRecord(task taskdb.Task) TaskRecord {
 		UpdatedAt:       task.UpdatedAt,
 		ClosedAt:        task.ClosedAt,
 	}
+}
+
+type classificationPreview struct {
+	domainRef             *string
+	projectRef            *string
+	domainUUID            *string
+	projectUUID           *string
+	domainHandle          *string
+	projectHandle         *string
+	defaultAssigneeUUID   *string
+	defaultAssigneeHandle *string
+}
+
+func (m TaskManager) resolveClassification(ctx context.Context, current *taskdb.Task, requestedDomainRef *string, requestedProjectRef *string) (classificationPreview, error) {
+	var targetDomain *taskdb.Domain
+	var targetProject *taskdb.Project
+
+	if current != nil && current.DomainUUID != nil {
+		domain, err := taskdb.FindDomain(ctx, m.DB, *current.DomainUUID)
+		if err != nil {
+			return classificationPreview{}, fmt.Errorf("find current domain %q: %w", *current.DomainUUID, err)
+		}
+		targetDomain = &domain
+	}
+	if current != nil && current.ProjectUUID != nil {
+		project, err := taskdb.FindProject(ctx, m.DB, *current.ProjectUUID)
+		if err != nil {
+			return classificationPreview{}, fmt.Errorf("find current project %q: %w", *current.ProjectUUID, err)
+		}
+		targetProject = &project
+	}
+
+	if requestedDomainRef != nil {
+		if *requestedDomainRef == "" {
+			targetDomain = nil
+		} else {
+			domain, err := taskdb.FindDomain(ctx, m.DB, *requestedDomainRef)
+			if err != nil {
+				return classificationPreview{}, fmt.Errorf("find domain %q: %w", *requestedDomainRef, err)
+			}
+			targetDomain = &domain
+		}
+	}
+	if requestedProjectRef != nil {
+		if *requestedProjectRef == "" {
+			targetProject = nil
+		} else {
+			project, err := taskdb.FindProject(ctx, m.DB, *requestedProjectRef)
+			if err != nil {
+				return classificationPreview{}, fmt.Errorf("find project %q: %w", *requestedProjectRef, err)
+			}
+			targetProject = &project
+		}
+	}
+
+	if targetProject != nil {
+		projectDomain, err := taskdb.FindDomain(ctx, m.DB, targetProject.DomainUUID)
+		if err != nil {
+			return classificationPreview{}, fmt.Errorf("find project domain %q: %w", targetProject.DomainUUID, err)
+		}
+		if targetDomain == nil {
+			targetDomain = &projectDomain
+		} else if targetDomain.UUID != targetProject.DomainUUID {
+			return classificationPreview{}, fmt.Errorf("%w: project %s belongs to domain %s", taskdb.ErrDomainProjectConstraint, targetProject.Handle, projectDomain.Handle)
+		}
+	}
+
+	result := classificationPreview{
+		domainUUID:    recordStringPointer(targetDomain, func(v *taskdb.Domain) string { return v.UUID }),
+		projectUUID:   recordStringPointer(targetProject, func(v *taskdb.Project) string { return v.UUID }),
+		domainHandle:  recordStringPointer(targetDomain, func(v *taskdb.Domain) string { return v.Handle }),
+		projectHandle: recordStringPointer(targetProject, func(v *taskdb.Project) string { return v.Handle }),
+	}
+	if targetProject != nil && targetProject.DefaultAssigneeUUID != nil {
+		result.defaultAssigneeUUID = targetProject.DefaultAssigneeUUID
+		result.defaultAssigneeHandle = targetProject.DefaultAssigneeHandle
+	} else if targetDomain != nil {
+		result.defaultAssigneeUUID = targetDomain.DefaultAssigneeUUID
+		result.defaultAssigneeHandle = targetDomain.DefaultAssigneeHandle
+	}
+
+	if requestedDomainRef != nil || requestedProjectRef != nil || (current == nil && (targetDomain != nil || targetProject != nil)) {
+		result.domainRef = handleUpdateReference(targetDomain)
+		result.projectRef = handleProjectUpdateReference(targetProject, requestedProjectRef, current)
+	}
+
+	return result, nil
+}
+
+func changedStringPointer(current *string, next *string) bool {
+	switch {
+	case current == nil && next == nil:
+		return false
+	case current == nil || next == nil:
+		return true
+	default:
+		return *current != *next
+	}
+}
+
+func recordStringPointer[T any](value *T, get func(*T) string) *string {
+	if value == nil {
+		return nil
+	}
+	v := get(value)
+	return &v
+}
+
+func handleUpdateReference(domain *taskdb.Domain) *string {
+	if domain == nil {
+		empty := ""
+		return &empty
+	}
+	handle := domain.Handle
+	return &handle
+}
+
+func handleProjectUpdateReference(project *taskdb.Project, requestedProjectRef *string, current *taskdb.Task) *string {
+	if requestedProjectRef == nil && current != nil {
+		return nil
+	}
+	if requestedProjectRef == nil && current == nil && project == nil {
+		return nil
+	}
+	if project == nil {
+		empty := ""
+		return &empty
+	}
+	handle := project.Handle
+	return &handle
 }
 
 func toClaimRecord(claim taskdb.Claim) ClaimRecord {

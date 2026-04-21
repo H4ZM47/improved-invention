@@ -92,15 +92,34 @@ type TaskRecord struct {
 }
 
 type ProjectRecord struct {
-	Handle string `json:"handle"`
-	Name   string `json:"name"`
-	Status string `json:"status"`
+	Handle                 string   `json:"handle"`
+	UUID                   string   `json:"uuid"`
+	Name                   string   `json:"name"`
+	Description            string   `json:"description"`
+	Status                 string   `json:"status"`
+	DomainID               string   `json:"domain_id"`
+	DefaultAssigneeActorID *string  `json:"default_assignee_actor_id"`
+	AssigneeActorID        *string  `json:"assignee_actor_id"`
+	DueAt                  *string  `json:"due_at"`
+	Tags                   []string `json:"tags"`
+	CreatedAt              string   `json:"created_at"`
+	UpdatedAt              string   `json:"updated_at"`
+	ClosedAt               *string  `json:"closed_at"`
 }
 
 type DomainRecord struct {
-	Handle string `json:"handle"`
-	Name   string `json:"name"`
-	Status string `json:"status"`
+	Handle                 string   `json:"handle"`
+	UUID                   string   `json:"uuid"`
+	Name                   string   `json:"name"`
+	Description            string   `json:"description"`
+	Status                 string   `json:"status"`
+	DefaultAssigneeActorID *string  `json:"default_assignee_actor_id"`
+	AssigneeActorID        *string  `json:"assignee_actor_id"`
+	DueAt                  *string  `json:"due_at"`
+	Tags                   []string `json:"tags"`
+	CreatedAt              string   `json:"created_at"`
+	UpdatedAt              string   `json:"updated_at"`
+	ClosedAt               *string  `json:"closed_at"`
 }
 
 type ActorRecord struct {
@@ -131,6 +150,11 @@ type ClaimRecord struct {
 type CreateTaskRequest struct {
 	Title       string
 	Description string
+	Tags        []string
+	DomainRef   *string
+	ProjectRef  *string
+	AssigneeRef *string
+	DueAt       *string
 }
 
 type ListTasksRequest struct{}
@@ -140,14 +164,17 @@ type ShowTaskRequest struct {
 }
 
 type UpdateTaskRequest struct {
-	Reference   string
-	Title       *string
-	Description *string
-	Tags        *[]string
-	DomainRef   *string
-	ProjectRef  *string
-	DueAt       *string
-	Status      *string
+	Reference             string
+	Title                 *string
+	Description           *string
+	Tags                  *[]string
+	DomainRef             *string
+	ProjectRef            *string
+	AssigneeRef           *string
+	DueAt                 *string
+	Status                *string
+	AcceptDefaultAssignee bool
+	KeepAssignee          bool
 }
 type ClaimTaskRequest struct {
 	Reference string
@@ -164,15 +191,53 @@ type UnlockTaskRequest struct {
 	Reference string
 }
 
-type CreateProjectRequest struct{}
+type CreateProjectRequest struct {
+	Name               string
+	Description        string
+	DomainRef          string
+	DefaultAssigneeRef *string
+	AssigneeRef        *string
+	DueAt              *string
+	Tags               []string
+}
 type ListProjectsRequest struct{}
-type ShowProjectRequest struct{}
-type UpdateProjectRequest struct{}
+type ShowProjectRequest struct {
+	Reference string
+}
+type UpdateProjectRequest struct {
+	Reference          string
+	Name               *string
+	Description        *string
+	DomainRef          *string
+	DefaultAssigneeRef *string
+	AssigneeRef        *string
+	DueAt              *string
+	Tags               *[]string
+	Status             *string
+}
 
-type CreateDomainRequest struct{}
+type CreateDomainRequest struct {
+	Name               string
+	Description        string
+	DefaultAssigneeRef *string
+	AssigneeRef        *string
+	DueAt              *string
+	Tags               []string
+}
 type ListDomainsRequest struct{}
-type ShowDomainRequest struct{}
-type UpdateDomainRequest struct{}
+type ShowDomainRequest struct {
+	Reference string
+}
+type UpdateDomainRequest struct {
+	Reference          string
+	Name               *string
+	Description        *string
+	DefaultAssigneeRef *string
+	AssigneeRef        *string
+	DueAt              *string
+	Tags               *[]string
+	Status             *string
+}
 
 type ListActorsRequest struct{}
 type ShowActorRequest struct {

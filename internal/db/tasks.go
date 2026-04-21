@@ -32,6 +32,11 @@ type Task struct {
 type TaskCreateInput struct {
 	Title       string
 	Description string
+	Tags        []string
+	DomainRef   *string
+	ProjectRef  *string
+	AssigneeRef *string
+	DueAt       *string
 	ActorID     *int64
 }
 
@@ -43,6 +48,7 @@ type TaskUpdateInput struct {
 	Tags        *[]string
 	DomainRef   *string
 	ProjectRef  *string
+	AssigneeRef *string
 	DueAt       *string
 	Status      *string
 	ActorID     *int64
@@ -63,11 +69,24 @@ func CreateTask(ctx context.Context, db *sql.DB, input TaskCreateInput) (Task, e
 		return Task{}, err
 	}
 
+	classification, err := resolveTaskClassificationTx(ctx, tx, nil, nil, input.DomainRef, input.ProjectRef)
+	if err != nil {
+		return Task{}, err
+	}
+	assigneeID, err := resolveNullableActorIDTx(ctx, tx, input.AssigneeRef)
+	if err != nil {
+		return Task{}, err
+	}
+	tagsJSON, err := json.Marshal(input.Tags)
+	if err != nil {
+		return Task{}, fmt.Errorf("marshal task tags: %w", err)
+	}
+
 	taskUUID := uuid.NewString()
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO tasks(uuid, handle, title, description, status, tags)
-		VALUES (?, ?, ?, ?, 'backlog', '[]')
-	`, taskUUID, handle, input.Title, input.Description)
+		INSERT INTO tasks(uuid, handle, title, description, status, domain_id, project_id, assignee_actor_id, due_at, tags)
+		VALUES (?, ?, ?, ?, 'backlog', ?, ?, ?, ?, ?)
+	`, taskUUID, handle, input.Title, input.Description, classification.domainID, classification.projectID, assigneeID, nullableValue(input.DueAt), string(tagsJSON))
 	if err != nil {
 		return Task{}, fmt.Errorf("insert task: %w", err)
 	}
@@ -88,8 +107,11 @@ func CreateTask(ctx context.Context, db *sql.DB, input TaskCreateInput) (Task, e
 		ActorID:    input.ActorID,
 		EventType:  "create",
 		Payload: map[string]any{
-			"title":  task.Title,
-			"status": task.Status,
+			"title":       task.Title,
+			"status":      task.Status,
+			"domain_id":   task.DomainUUID,
+			"project_id":  task.ProjectUUID,
+			"assignee_id": task.AssigneeUUID,
 		},
 	}); err != nil {
 		return Task{}, err
@@ -163,26 +185,32 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 	if input.Tags != nil {
 		nextTask.Tags = *input.Tags
 	}
-	if input.DomainRef != nil {
-		nextTask.DomainUUID, err = resolveNullableEntityUUID(ctx, tx, "domains", *input.DomainRef)
-		if err != nil {
-			return Task{}, err
-		}
-	}
-	if input.ProjectRef != nil {
-		nextTask.ProjectUUID, err = resolveNullableEntityUUID(ctx, tx, "projects", *input.ProjectRef)
-		if err != nil {
-			return Task{}, err
-		}
-	}
 	if input.DueAt != nil {
 		nextTask.DueAt = nullableStringPointer(*input.DueAt)
 	}
 	if input.Status != nil {
 		nextTask.Status = *input.Status
 	}
+	if input.DomainRef != nil || input.ProjectRef != nil {
+		classification, err := resolveTaskClassificationTx(ctx, tx, current.DomainUUID, current.ProjectUUID, input.DomainRef, input.ProjectRef)
+		if err != nil {
+			return Task{}, err
+		}
+		nextTask.DomainUUID = classification.domainUUID
+		nextTask.ProjectUUID = classification.projectUUID
+	}
+	assigneeID, err := currentNullableActorID(ctx, tx, current.AssigneeUUID)
+	if err != nil {
+		return Task{}, err
+	}
+	if input.AssigneeRef != nil {
+		assigneeID, err = resolveNullableActorIDTx(ctx, tx, input.AssigneeRef)
+		if err != nil {
+			return Task{}, err
+		}
+	}
 
-	if err := validateTaskTransition(current.Status, nextTask.Status); err != nil {
+	if err := validateLifecycleTransition(current.Status, nextTask.Status); err != nil {
 		return Task{}, err
 	}
 
@@ -213,7 +241,7 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 
 	query := `
 		UPDATE tasks
-		SET title = ?, description = ?, status = ?, domain_id = ?, project_id = ?, due_at = ?, tags = ?,
+		SET title = ?, description = ?, status = ?, domain_id = ?, project_id = ?, assignee_actor_id = ?, due_at = ?, tags = ?,
 		    updated_at = CURRENT_TIMESTAMP,
 		    closed_at = CASE
 		      WHEN ? IN ('completed', 'cancelled') THEN COALESCE(closed_at, CURRENT_TIMESTAMP)
@@ -230,6 +258,7 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 		nextTask.Status,
 		domainID,
 		projectID,
+		assigneeID,
 		nextTask.DueAt,
 		string(tagsJSON),
 		nextTask.Status,
@@ -250,6 +279,7 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 		"tags":        updated.Tags,
 		"domain_id":   updated.DomainUUID,
 		"project_id":  updated.ProjectUUID,
+		"assignee_id": updated.AssigneeUUID,
 		"due_at":      updated.DueAt,
 	}
 	if current.Status != updated.Status {
@@ -277,7 +307,7 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 	return updated, nil
 }
 
-func validateTaskTransition(from string, to string) error {
+func validateLifecycleTransition(from string, to string) error {
 	if from == to {
 		return nil
 	}
@@ -398,23 +428,6 @@ func scanTask(scanner interface{ Scan(...any) error }) (Task, error) {
 	return task, nil
 }
 
-func resolveNullableEntityUUID(ctx context.Context, tx *sql.Tx, table string, reference string) (*string, error) {
-	if reference == "" {
-		return nil, nil
-	}
-
-	var resolved string
-	query := fmt.Sprintf(`SELECT uuid FROM %s WHERE handle = ? OR uuid = ?`, table)
-	if err := tx.QueryRowContext(ctx, query, reference, reference).Scan(&resolved); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%s reference %q not found", table, reference)
-		}
-		return nil, fmt.Errorf("resolve %s reference %q: %w", table, reference, err)
-	}
-
-	return &resolved, nil
-}
-
 func resolveEntityIDForUUID(ctx context.Context, tx *sql.Tx, table string, value *string) (any, error) {
 	if value == nil {
 		return nil, nil
@@ -435,6 +448,76 @@ func nullableStringFromNull(value sql.NullString) *string {
 	}
 	v := value.String
 	return &v
+}
+
+type taskClassification struct {
+	domainID    any
+	projectID   any
+	domainUUID  *string
+	projectUUID *string
+}
+
+func resolveTaskClassificationTx(ctx context.Context, tx *sql.Tx, currentDomainUUID *string, currentProjectUUID *string, domainRef *string, projectRef *string) (taskClassification, error) {
+	result := taskClassification{
+		domainUUID:  currentDomainUUID,
+		projectUUID: currentProjectUUID,
+	}
+
+	if domainRef != nil {
+		if *domainRef == "" {
+			result.domainUUID = nil
+		} else {
+			domain, err := findDomainTx(ctx, tx, *domainRef)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return taskClassification{}, fmt.Errorf("domains reference %q not found", *domainRef)
+				}
+				return taskClassification{}, err
+			}
+			result.domainUUID = &domain.UUID
+		}
+	}
+
+	if projectRef != nil {
+		if *projectRef == "" {
+			result.projectUUID = nil
+		} else {
+			project, err := findProjectTx(ctx, tx, *projectRef)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return taskClassification{}, fmt.Errorf("projects reference %q not found", *projectRef)
+				}
+				return taskClassification{}, err
+			}
+			result.projectUUID = &project.UUID
+		}
+	}
+
+	if result.projectUUID != nil {
+		project, err := queryProject(ctx, tx, projectSelectQuery+` WHERE p.uuid = ?`, *result.projectUUID)
+		if err != nil {
+			return taskClassification{}, fmt.Errorf("resolve task project domain: %w", err)
+		}
+
+		if result.domainUUID == nil {
+			result.domainUUID = &project.DomainUUID
+		} else if *result.domainUUID != project.DomainUUID {
+			return taskClassification{}, fmt.Errorf("%w: project %s belongs to domain %s", ErrDomainProjectConstraint, project.Handle, project.DomainHandle)
+		}
+	}
+
+	domainID, err := resolveEntityIDForUUID(ctx, tx, "domains", result.domainUUID)
+	if err != nil {
+		return taskClassification{}, err
+	}
+	projectID, err := resolveEntityIDForUUID(ctx, tx, "projects", result.projectUUID)
+	if err != nil {
+		return taskClassification{}, err
+	}
+
+	result.domainID = domainID
+	result.projectID = projectID
+	return result, nil
 }
 
 func nullableStringPointer(value string) *string {
