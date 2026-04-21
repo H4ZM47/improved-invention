@@ -159,7 +159,27 @@ type AgentIdentityRecord struct {
 }
 
 type ViewRecord struct {
-	Name string `json:"name"`
+	Name       string           `json:"name"`
+	UUID       string           `json:"uuid"`
+	EntityType string           `json:"entity_type"`
+	Filters    SavedViewFilters `json:"filters"`
+	CreatedAt  string           `json:"created_at"`
+	UpdatedAt  string           `json:"updated_at"`
+}
+
+// SavedViewFilters is the JSON-serializable filter payload stored with a saved view.
+//
+// Fields mirror ListTasksRequest but use zero values (empty string, nil slice)
+// to mean "no filter" so saved payloads round-trip cleanly through JSON.
+type SavedViewFilters struct {
+	Statuses    []string `json:"statuses,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
+	DomainRef   string   `json:"domain_ref,omitempty"`
+	ProjectRef  string   `json:"project_ref,omitempty"`
+	AssigneeRef string   `json:"assignee_ref,omitempty"`
+	DueBefore   string   `json:"due_before,omitempty"`
+	DueAfter    string   `json:"due_after,omitempty"`
+	Search      string   `json:"search,omitempty"`
 }
 
 type ClaimRecord struct {
@@ -370,8 +390,23 @@ type ShowActorRequest struct {
 	Reference string
 }
 
-type CreateViewRequest struct{}
+type CreateViewRequest struct {
+	Name    string
+	Filters SavedViewFilters
+}
+
 type ListViewsRequest struct{}
-type ShowViewRequest struct{}
-type UpdateViewRequest struct{}
-type DeleteViewRequest struct{}
+
+type ShowViewRequest struct {
+	Name string
+}
+
+type UpdateViewRequest struct {
+	Name    string
+	NewName string
+	Filters SavedViewFilters
+}
+
+type DeleteViewRequest struct {
+	Name string
+}
