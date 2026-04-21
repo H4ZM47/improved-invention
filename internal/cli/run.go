@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/H4ZM47/grind/internal/app"
@@ -113,6 +114,8 @@ func classifyFailure(err error, commandName string) failureClass {
 		failure.Code, failure.ExitCode = "VALIDATION_ERROR", 11
 	}
 
+	failure.Message = normalizeFailureMessage(failure.Code, err, commandName)
+
 	return failure
 }
 
@@ -208,6 +211,249 @@ func normalizeEntityNotFoundMessage(err error, commandName string) string {
 	}
 
 	return "requested record was not found"
+}
+
+func normalizeFailureMessage(code string, err error, commandName string) string {
+	switch code {
+	case "INVALID_ARGS":
+		return normalizeInvalidArgsMessage(err)
+	case "ASSIGNMENT_DECISION_REQUIRED":
+		return err.Error()
+	case "CLAIM_REQUIRED":
+		return "this action requires an active claim on the task; claim it first"
+	case "CLAIM_CONFLICT":
+		return "this task is already claimed by another actor"
+	case "CLAIM_EXPIRED":
+		return "the active claim has expired; claim the task again"
+	case "CLAIM_NOT_HELD_BY_ACTOR":
+		return "you do not hold the active claim on this task"
+	case "DOMAIN_PROJECT_CONSTRAINT":
+		return normalizeDomainProjectConstraintMessage(err)
+	case "VIEW_NOT_FOUND", "ENTITY_NOT_FOUND":
+		return normalizeEntityNotFoundMessage(err, commandName)
+	case "INVALID_RELATIONSHIP":
+		return normalizeInvalidRelationshipMessage(err)
+	case "FILTER_INVALID":
+		return normalizeFilterMessage(err)
+	case "VALIDATION_ERROR":
+		return normalizeValidationMessage(err, commandName)
+	case "BACKUP_FAILED":
+		return normalizeBackupRestoreMessage(err, "backup")
+	case "RESTORE_FAILED":
+		return normalizeBackupRestoreMessage(err, "restore")
+	case "REPORT_SERVER_FAILED":
+		return normalizeReportMessage(err)
+	case "EXPORT_FAILED":
+		return normalizeExportMessage(err)
+	case "MIGRATION_FAILED":
+		return "the Grind database schema could not be prepared; inspect the migration error and try again"
+	case "DATABASE_UNAVAILABLE":
+		return normalizeDatabaseUnavailableMessage(err)
+	case "DATABASE_BUSY":
+		return "the Grind database is busy or locked; wait a moment and try again"
+	case "INTERNAL_ERROR":
+		return normalizeInternalErrorMessage(err)
+	default:
+		if err == nil {
+			return "the command failed"
+		}
+		return err.Error()
+	}
+}
+
+func normalizeInvalidArgsMessage(err error) string {
+	if err == nil {
+		return "the command arguments are invalid"
+	}
+	return err.Error()
+}
+
+func normalizeDomainProjectConstraintMessage(err error) string {
+	if err == nil {
+		return "the selected project and domain do not form a valid combination"
+	}
+	msg := strings.TrimSpace(err.Error())
+	msg = strings.TrimPrefix(msg, taskdb.ErrDomainProjectConstraint.Error()+":")
+	msg = strings.TrimSpace(msg)
+	if msg == "" {
+		return "the selected project and domain do not form a valid combination"
+	}
+	if strings.Contains(msg, "project domain") && strings.Contains(msg, "not found") {
+		return msg
+	}
+	if strings.Contains(msg, "belongs to domain") {
+		return msg
+	}
+	return msg
+}
+
+func normalizeInvalidRelationshipMessage(err error) string {
+	if err == nil {
+		return "the requested relationship or link type is not supported"
+	}
+	msg := strings.TrimSpace(err.Error())
+	switch {
+	case errors.Is(err, taskdb.ErrInvalidRelationshipType):
+		return fmt.Sprintf("unsupported relationship type; use one of: %s", strings.Join(sortedKeys([]string{
+			"parent", "child", "blocks", "blocked_by", "related_to", "sibling", "duplicate_of", "supersedes",
+		}), ", "))
+	case errors.Is(err, taskdb.ErrInvalidLinkType):
+		return fmt.Sprintf("unsupported link type; use one of: %s", strings.Join(sortedKeys([]string{
+			taskdb.LinkTypeFile, taskdb.LinkTypeURL, taskdb.LinkTypeRepo, taskdb.LinkTypeWorktree, taskdb.LinkTypeObsidian, taskdb.LinkTypeOther,
+		}), ", "))
+	default:
+		return msg
+	}
+}
+
+func normalizeFilterMessage(err error) string {
+	if err == nil {
+		return "one or more filters are invalid"
+	}
+	msg := strings.TrimSpace(err.Error())
+	switch {
+	case strings.Contains(msg, "invalid --status value"):
+		return msg + "; use one of: backlog, active, paused, blocked, completed, cancelled"
+	case strings.Contains(msg, "parse --due-before"):
+		return "`--due-before` must be a valid RFC3339 timestamp"
+	case strings.Contains(msg, "parse --due-after"):
+		return "`--due-after` must be a valid RFC3339 timestamp"
+	case strings.Contains(msg, "saved view filters must be valid JSON"):
+		return "saved view filters must be valid JSON"
+	default:
+		return msg
+	}
+}
+
+func normalizeValidationMessage(err error, commandName string) string {
+	if err == nil {
+		return "the command input is invalid"
+	}
+	msg := strings.TrimSpace(err.Error())
+
+	switch {
+	case errors.Is(err, gitctx.ErrNotGitRepo):
+		return "this command must be run inside a git repository"
+	case strings.Contains(msg, "invalid task status transition from "):
+		matches := regexp.MustCompile(`invalid task status transition from ([^ ]+) to ([^ ]+)`).FindStringSubmatch(msg)
+		if len(matches) == 3 {
+			return fmt.Sprintf("cannot change status directly from %s to %s", matches[1], matches[2])
+		}
+	case errors.Is(err, taskdb.ErrSessionActive):
+		return "a task session is already active"
+	case errors.Is(err, taskdb.ErrSessionNotActive):
+		return "there is no active task session to update"
+	case errors.Is(err, taskdb.ErrSessionNotPaused):
+		return "the task session is not paused"
+	case errors.Is(err, taskdb.ErrSessionOnClosedTask):
+		return "time tracking cannot start or resume on a closed task"
+	case errors.Is(err, taskdb.ErrInvalidManualTimeEntry):
+		return strings.TrimSpace(strings.TrimPrefix(msg, taskdb.ErrInvalidManualTimeEntry.Error()+":"))
+	case errors.Is(err, taskdb.ErrManualTimeEditEmpty):
+		return "manual time edit requires at least one changed field"
+	case errors.Is(err, taskdb.ErrManualTimeEntryNotFound):
+		return "manual time entry was not found"
+	case strings.Contains(msg, "parse GRIND_BUSY_TIMEOUT_MS"):
+		return "GRIND_BUSY_TIMEOUT_MS must be a positive integer number of milliseconds"
+	case strings.Contains(msg, "parse GRIND_CLAIM_LEASE_HOURS"):
+		return "GRIND_CLAIM_LEASE_HOURS must be a positive integer number of hours"
+	}
+
+	return msg
+}
+
+func normalizeBackupRestoreMessage(err error, mode string) string {
+	if err == nil {
+		return fmt.Sprintf("%s failed", mode)
+	}
+	msg := strings.TrimSpace(err.Error())
+	switch {
+	case strings.Contains(msg, "output path is required"):
+		return "you must provide an output path"
+	case strings.Contains(msg, "input path is required"):
+		return "you must provide an input path"
+	case strings.Contains(msg, "target database path is required"):
+		return "the target database path is required"
+	case strings.Contains(msg, "must differ"):
+		return "the restore input and target database paths must be different"
+	default:
+		return msg
+	}
+}
+
+func normalizeReportMessage(err error) string {
+	if err == nil {
+		return "the report server failed"
+	}
+	msg := strings.TrimSpace(err.Error())
+	if strings.Contains(msg, "not found") {
+		return msg
+	}
+	if strings.Contains(msg, "build report server") {
+		return "the report server could not be prepared"
+	}
+	if strings.Contains(msg, "start report server on") {
+		return msg
+	}
+	if strings.Contains(msg, "serve report server") {
+		return "the report server stopped unexpectedly"
+	}
+	return msg
+}
+
+func normalizeExportMessage(err error) string {
+	if err == nil {
+		return "the export failed"
+	}
+	return strings.TrimSpace(err.Error())
+}
+
+func normalizeDatabaseUnavailableMessage(err error) string {
+	if err == nil {
+		return "the Grind database is unavailable"
+	}
+	msg := strings.TrimSpace(err.Error())
+	switch {
+	case strings.Contains(msg, "resolve user config dir"):
+		return "could not resolve the local Grind config directory"
+	case strings.Contains(msg, "create database directory"):
+		return "could not create the local Grind data directory"
+	case strings.Contains(msg, "open sqlite database"):
+		return "could not open the Grind database"
+	case strings.Contains(msg, "ping sqlite database"):
+		return "could not connect to the Grind database"
+	default:
+		return msg
+	}
+}
+
+func normalizeInternalErrorMessage(err error) string {
+	if err == nil {
+		return "the command failed unexpectedly"
+	}
+	msg := strings.TrimSpace(err.Error())
+	switch {
+	case strings.Contains(msg, "UNIQUE constraint failed: relationships.target_task_id"):
+		return "that task already has a parent"
+	case strings.Contains(msg, "UNIQUE constraint failed: saved_views.name"):
+		return "a saved view with that name already exists"
+	case strings.Contains(msg, "UNIQUE constraint failed: claims.task_id"):
+		return "this task is already claimed by another actor"
+	case strings.Contains(msg, "invalid metadata json"):
+		return "link metadata must be valid JSON"
+	case strings.Contains(msg, "begin ") && strings.Contains(msg, " transaction"):
+		return "the database operation could not start"
+	case strings.Contains(msg, "commit ") && strings.Contains(msg, " transaction"):
+		return "the database operation could not be completed"
+	default:
+		return msg
+	}
+}
+
+func sortedKeys(values []string) []string {
+	out := append([]string(nil), values...)
+	sort.Strings(out)
+	return out
 }
 
 func isFilterError(err error) bool {
