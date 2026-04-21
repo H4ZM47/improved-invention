@@ -6,7 +6,7 @@ GitHub: [H4ZM47/improved-invention](https://github.com/H4ZM47/improved-invention
 
 ## Status
 
-Core v1 workflows are in place on `main`: task CRUD, claims, domains/projects, links, relationships, time tracking, saved views, exports, backup/restore, and the read-only report server. Remaining release-hardening work is focused on package-manager distribution.
+Task CLI v1 is released and published through GitHub Releases. The stable install path is to download a release asset for your platform, or consume the generated package-manager metadata from the release bundle.
 
 ## What it is
 
@@ -88,6 +88,20 @@ To copy the generated formula into a Homebrew tap checkout:
 ```sh
 HOMEBREW_TAP_DIR=/path/to/homebrew-task-cli ./scripts/sync-homebrew-tap.sh
 ```
+
+## Install
+
+The published release assets live on [GitHub Releases](https://github.com/H4ZM47/improved-invention/releases).
+
+Each release includes:
+
+- standalone archives for macOS, Linux, and Windows
+- Linux `.deb` and `.rpm` packages
+- `checksums.txt`
+- a tap-ready Homebrew formula
+- winget manifest files
+
+If you want the raw binary for your platform, download the matching archive from the latest release and place `task` somewhere on your `PATH`.
 
 ## Design and reference docs
 
