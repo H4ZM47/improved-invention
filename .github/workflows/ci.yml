@@ -43,6 +43,54 @@ jobs:
           name: task-linux-amd64-dev
           path: dist/task
 
+  package-manager-artifacts:
+    name: Package manager artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build package manager artifacts
+        env:
+          COMMIT_VALUE: ${{ github.sha }}
+          REPO_OWNER: H4ZM47
+          REPO_NAME: improved-invention
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            export VERSION_VALUE="${GITHUB_REF_NAME#v}"
+          else
+            export VERSION_VALUE="0.0.0-dev.${GITHUB_SHA::12}"
+          fi
+          export DATE_VALUE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ./scripts/build-packaging-artifacts.sh
+
+      - name: Upload release archives and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-release-archives
+          path: dist/releases
+          if-no-files-found: error
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-linux-packages
+          path: dist/packages
+          if-no-files-found: error
+
+      - name: Upload package manager metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-package-manager-metadata
+          path: dist/metadata
+          if-no-files-found: error
+
   release-binaries:
     name: Release binary (${{ matrix.goos }}-${{ matrix.goarch }})
     runs-on: ubuntu-latest
