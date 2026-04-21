@@ -42,3 +42,53 @@ jobs:
         with:
           name: task-linux-amd64-dev
           path: dist/task
+
+  release-binaries:
+    name: Release binary (${{ matrix.goos }}-${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build release archive
+        id: package
+        env:
+          GOOS_VALUE: ${{ matrix.goos }}
+          GOARCH_VALUE: ${{ matrix.goarch }}
+          COMMIT_VALUE: ${{ github.sha }}
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            export VERSION_VALUE="${GITHUB_REF_NAME}"
+          else
+            export VERSION_VALUE="dev-${GITHUB_SHA}"
+          fi
+          export DATE_VALUE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          archive_path="$(./scripts/build-release.sh)"
+          echo "archive_path=${archive_path}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ steps.package.outputs.archive_path }}
+          if-no-files-found: error
