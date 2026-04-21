@@ -1,6 +1,6 @@
 # Testing
 
-Task CLI uses three test layers:
+Grind uses three test layers:
 
 - unit-style package tests for business rules and command behavior
 - SQLite-backed integration tests that open a real migrated database

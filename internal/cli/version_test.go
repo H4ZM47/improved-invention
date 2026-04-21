@@ -50,7 +50,7 @@ func TestVersionCommandJSONOutput(t *testing.T) {
 		t.Fatalf("Execute() error = %v", err)
 	}
 
-	want := "{\n  \"command\": \"task version\",\n  \"data\": {\n    \"commit\": \"abc123\",\n    \"date\": \"2026-04-21\",\n    \"version\": \"1.2.3\"\n  },\n  \"meta\": {},\n  \"ok\": true\n}\n"
+	want := "{\n  \"command\": \"grind version\",\n  \"data\": {\n    \"commit\": \"abc123\",\n    \"date\": \"2026-04-21\",\n    \"version\": \"1.2.3\"\n  },\n  \"meta\": {},\n  \"ok\": true\n}\n"
 	if stdout.String() != want {
 		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
 	}

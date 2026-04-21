@@ -5,7 +5,7 @@ Status: Current v1 command-group definition
 
 ## Scope
 
-This document defines the top-level Task CLI command groups and cross-cutting naming rules for v1.
+This document defines the top-level Grind command groups and cross-cutting naming rules for v1.
 
 It intentionally does not lock:
 
@@ -20,14 +20,14 @@ Those are follow-on contract issues built on top of this command map.
 The v1 executable name is:
 
 ```text
-task
+grind
 ```
 
-Examples in docs, scripts, and tests should use `task ...` as the canonical command form.
+Examples in docs, scripts, and tests should use `grind ...` as the canonical command form.
 
 ## Command Design Rules
 
-- The root command owns the primary task workflow because the executable itself is already named `task`.
+- The root command owns the primary task workflow because the executable itself is already named `grind`.
 - Additional top-level commands are nouns that map to first-class product concepts or platform functions.
 - Leaf commands are verbs such as `create`, `list`, `show`, `update`, `claim`, or `export`.
 - Commands should favor explicit flags over positional magic when non-interactive automation is expected.
@@ -55,11 +55,11 @@ Expected responsibility:
 Representative shape:
 
 ```text
-task create ...
-task list ...
-task show <task-ref>
-task update <task-ref> ...
-task claim <task-ref> ...
+grind create ...
+grind list ...
+grind show <task-ref>
+grind update <task-ref> ...
+grind claim <task-ref> ...
 ```
 
 Note:
@@ -121,7 +121,7 @@ Expected responsibility:
 
 Rationale:
 
-- saved views are first-class reusable query definitions, not just ad hoc flags on `task list`.
+- saved views are first-class reusable query definitions, not just ad hoc flags on `grind list`.
 
 ### `export`
 
@@ -198,7 +198,7 @@ This keeps normal use human-friendly while preserving durable machine references
 ## Example Tree
 
 ```text
-task
+grind
   create
   list
   show

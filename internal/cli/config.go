@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ func newConfigShowCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				payload := map[string]any{
 					"ok":      true,
-					"command": "task config show",
+					"command": "grind config show",
 					"data": map[string]any{
 						"config": map[string]any{
 							"data_dir":        cfg.DataDir,

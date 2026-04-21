@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://nfpm.goreleaser.com/schema.json
-name: "task-cli"
+name: "grind"
 arch: "__ARCH__"
 platform: "linux"
 version: "__VERSION__"
@@ -14,14 +14,14 @@ homepage: "https://github.com/__REPO_OWNER__/__REPO_NAME__"
 license: "MIT"
 contents:
   - src: "__BINARY_PATH__"
-    dst: /usr/bin/task
+    dst: /usr/bin/grind
     file_info:
       mode: 0755
   - src: "__README_PATH__"
-    dst: /usr/share/doc/task-cli/README.md
+    dst: /usr/share/doc/grind/README.md
     file_info:
       mode: 0644
   - src: "__LICENSE_PATH__"
-    dst: /usr/share/doc/task-cli/LICENSE
+    dst: /usr/share/doc/grind/LICENSE
     file_info:
       mode: 0644

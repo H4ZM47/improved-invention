@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
 	})
 
 	if err := root.Execute(); err != nil {
-		t.Fatalf("task time add Execute() error = %v; stderr=%q", err, stderr.String())
+		t.Fatalf("grind time add Execute() error = %v; stderr=%q", err, stderr.String())
 	}
 
 	var payload struct {
@@ -62,7 +62,7 @@ func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task time add"; got != want {
+	if got, want := payload.Command, "grind time add"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if payload.Data.Entry.EntryID == "" {
@@ -122,7 +122,7 @@ func TestTaskTimeEditCommandEndToEnd(t *testing.T) {
 	})
 
 	if err := root.Execute(); err != nil {
-		t.Fatalf("task time edit Execute() error = %v; stderr=%q", err, stderr.String())
+		t.Fatalf("grind time edit Execute() error = %v; stderr=%q", err, stderr.String())
 	}
 
 	var payload struct {
@@ -145,7 +145,7 @@ func TestTaskTimeEditCommandEndToEnd(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task time edit"; got != want {
+	if got, want := payload.Command, "grind time edit"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Data.Entry.EntryID, entryID; got != want {
@@ -205,7 +205,7 @@ func createManualTimeEntryViaCLI(t *testing.T, dbPath string, taskHandle string,
 	})
 
 	if err := root.Execute(); err != nil {
-		t.Fatalf("task time add Execute() error = %v; stderr=%q", err, stderr.String())
+		t.Fatalf("grind time add Execute() error = %v; stderr=%q", err, stderr.String())
 	}
 
 	var payload struct {

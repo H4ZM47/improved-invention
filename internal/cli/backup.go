@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ func newBackupCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task backup create",
+					"command": "grind backup create",
 					"data": map[string]any{
 						"output_path": output,
 					},

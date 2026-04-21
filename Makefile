@@ -13,4 +13,4 @@ build:
 	./scripts/build.sh
 
 run:
-	go run ./cmd/task
+	go run ./cmd/grind

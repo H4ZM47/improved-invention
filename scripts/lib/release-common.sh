@@ -5,7 +5,7 @@ readonly RELEASE_COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(cd "${RELEASE_COMMON_DIR}/../.." && pwd)"
 
 default_repo_owner="H4ZM47"
-default_repo_name="task-cli"
+default_repo_name="grind"
 
 repo_owner="${REPO_OWNER:-}"
 repo_name="${REPO_NAME:-}"
@@ -57,7 +57,7 @@ archive_filename() {
   local version="$1"
   local goos="$2"
   local goarch="$3"
-  printf 'task_%s_%s_%s.%s\n' "${version}" "${goos}" "${goarch}" "$(archive_extension "${goos}")"
+  printf 'grind_%s_%s_%s.%s\n' "${version}" "${goos}" "${goarch}" "$(archive_extension "${goos}")"
 }
 
 archive_path() {

@@ -16,7 +16,7 @@ func newVersionCommand(build BuildInfo, opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				payload := map[string]any{
 					"ok":      true,
-					"command": "task version",
+					"command": "grind version",
 					"data": map[string]string{
 						"version": build.Version,
 						"commit":  build.Commit,

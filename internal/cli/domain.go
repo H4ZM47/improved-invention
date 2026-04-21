@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +56,7 @@ func newDomainCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task domain create",
+					"command": "grind domain create",
 					"data": map[string]any{
 						"domain": domain,
 					},
@@ -97,7 +97,7 @@ func newDomainListCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task domain list",
+					"command": "grind domain list",
 					"data": map[string]any{
 						"items": items,
 					},
@@ -137,7 +137,7 @@ func newDomainShowCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task domain show",
+					"command": "grind domain show",
 					"data": map[string]any{
 						"domain": domain,
 					},
@@ -196,7 +196,7 @@ func newDomainUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			}
 
 			if req.Name == nil && req.Description == nil && req.DefaultAssigneeRef == nil && req.AssigneeRef == nil && req.DueAt == nil && req.Tags == nil && req.Status == nil {
-				return fmt.Errorf("task domain update requires at least one changed field")
+				return fmt.Errorf("grind domain update requires at least one changed field")
 			}
 
 			domain, err := manager.Update(cmd.Context(), req)
@@ -207,7 +207,7 @@ func newDomainUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task domain update",
+					"command": "grind domain update",
 					"data": map[string]any{
 						"domain": domain,
 					},
@@ -259,7 +259,7 @@ func newDomainCloseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task domain close",
+					"command": "grind domain close",
 					"data": map[string]any{
 						"domain": domain,
 					},

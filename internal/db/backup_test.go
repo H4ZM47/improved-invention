@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 func TestBackupDatabaseCreatesPortableArtifact(t *testing.T) {
@@ -174,7 +174,7 @@ func seedBackupFixtureDB(t *testing.T) (string, backupFixtureExpectation) {
 		t.Fatalf("CreateDomain() error = %v", err)
 	}
 	project, err := (app.ProjectManager{DB: db, HumanName: "alex"}).Create(context.Background(), app.CreateProjectRequest{
-		Name:      "Task CLI",
+		Name:      "Grind",
 		DomainRef: domain.Handle,
 	})
 	if err != nil {

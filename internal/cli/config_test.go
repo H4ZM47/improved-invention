@@ -43,7 +43,7 @@ func TestNewConfigCommandJSONOutput(t *testing.T) {
 		t.Fatal("payload.OK = false, want true")
 	}
 
-	if got, want := payload.Command, "task config show"; got != want {
+	if got, want := payload.Command, "grind config show"; got != want {
 		t.Fatalf("Command = %q, want %q", got, want)
 	}
 

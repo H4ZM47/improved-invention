@@ -1,10 +1,10 @@
 {
-  "command": "task",
+  "command": "grind",
   "error": {
     "code": "INVALID_ARGS",
     "details": {},
     "exit_code": 10,
-    "message": "unknown command \"bogus\" for \"task\""
+    "message": "unknown command \"bogus\" for \"grind\""
   },
   "ok": false
 }

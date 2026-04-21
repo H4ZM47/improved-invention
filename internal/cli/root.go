@@ -18,7 +18,7 @@ type GlobalOptions struct {
 	Quiet   bool
 }
 
-// Execute runs the Task CLI root command.
+// Execute runs the Grind root command.
 func Execute(build BuildInfo) error {
 	cmd, _ := newRootCommandWithOptions(build)
 	return cmd.Execute()
@@ -34,7 +34,7 @@ func newRootCommandWithOptions(build BuildInfo) (*cobra.Command, *GlobalOptions)
 	opts := &GlobalOptions{}
 
 	cmd := &cobra.Command{
-		Use:           "task",
+		Use:           "grind",
 		Short:         "Local-first task management for humans and AI agents",
 		SilenceUsage:  true,
 		SilenceErrors: true,

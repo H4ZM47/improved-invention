@@ -15,7 +15,7 @@ func TestCreateListAndRemoveTaskExternalLink(t *testing.T) {
 	created, err := CreateExternalLink(context.Background(), db, TaskExternalLinkCreateInput{
 		TaskReference: "TASK-1",
 		LinkType:      LinkTypeRepo,
-		Target:        "https://github.com/H4ZM47/task-cli",
+		Target:        "https://github.com/H4ZM47/grind",
 		Label:         "origin",
 		MetadataJSON:  `{"branch":"main"}`,
 	})

@@ -10,7 +10,7 @@ Successful machine-readable responses use a stable top-level envelope:
 ```json
 {
   "ok": true,
-  "command": "task create",
+  "command": "grind create",
   "data": {},
   "meta": {}
 }
@@ -24,12 +24,12 @@ Successful machine-readable responses use a stable top-level envelope:
 - `meta` contains non-primary metadata such as pagination, filters, or export format.
 - Success payloads should avoid unstable fields such as random IDs or transient timestamps unless the command itself is creating or returning them as business data.
 
-## Example: `task create --json`
+## Example: `grind create --json`
 
 ```json
 {
   "ok": true,
-  "command": "task create",
+  "command": "grind create",
   "data": {
     "task": {
       "uuid": "9e04c26b-fb8a-4f96-a3f5-6544d07d7757",
@@ -53,12 +53,12 @@ Successful machine-readable responses use a stable top-level envelope:
 }
 ```
 
-## Example: `task show TASK-1042 --json`
+## Example: `grind show TASK-1042 --json`
 
 ```json
 {
   "ok": true,
-  "command": "task show",
+  "command": "grind show",
   "data": {
     "task": {
       "uuid": "9e04c26b-fb8a-4f96-a3f5-6544d07d7757",
@@ -93,12 +93,12 @@ Successful machine-readable responses use a stable top-level envelope:
 }
 ```
 
-## Example: `task list --json`
+## Example: `grind list --json`
 
 ```json
 {
   "ok": true,
-  "command": "task list",
+  "command": "grind list",
   "data": {
     "items": [
       {
@@ -153,12 +153,12 @@ Successful machine-readable responses use a stable top-level envelope:
 }
 ```
 
-## Example: `task version --json`
+## Example: `grind version --json`
 
 ```json
 {
   "ok": true,
-  "command": "task version",
+  "command": "grind version",
   "data": {
     "version": "dev",
     "commit": "unknown",

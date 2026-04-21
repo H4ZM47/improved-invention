@@ -1,6 +1,6 @@
 package export
 
-import "github.com/H4ZM47/task-cli/internal/app"
+import "github.com/H4ZM47/grind/internal/app"
 
 // DocumentVersion identifies the export document schema version.
 //

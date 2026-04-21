@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
+	"github.com/H4ZM47/grind/internal/app"
 )
 
 // Server serves read-only HTML and JSON task reports.
@@ -119,7 +119,7 @@ func (s *Server) handleTaskList(w http.ResponseWriter, r *http.Request) {
 		Generated:  time.Now().Format(time.RFC3339),
 	}
 	if err := s.renderHTML(w, "task-list", data); err != nil {
-		http.Error(w, fmt.Sprintf("render task list: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("render grind list: %v", err), http.StatusInternalServerError)
 	}
 }
 
@@ -178,7 +178,7 @@ func (s *Server) handleAPITasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	payload := map[string]any{
 		"ok":      true,
-		"command": "task report api tasks",
+		"command": "grind report api tasks",
 		"data":    map[string]any{"items": tasks},
 		"meta": map[string]any{
 			"count":   len(tasks),

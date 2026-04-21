@@ -38,7 +38,7 @@ for arch in "${package_arches[@]}"; do
   stage_dir="${work_dir}/${arch}"
   mkdir -p "${stage_dir}"
 
-  binary_path="${stage_dir}/task"
+  binary_path="${stage_dir}/grind"
   config_path="${stage_dir}/nfpm.yaml"
 
   (
@@ -48,7 +48,7 @@ for arch in "${package_arches[@]}"; do
       -trimpath \
       -ldflags "-s -w -X main.version=${VERSION_VALUE} -X main.commit=${COMMIT_VALUE} -X main.date=${DATE_VALUE}" \
       -o "${binary_path}" \
-      ./cmd/task
+      ./cmd/grind
   )
 
   render_nfpm_config "${arch}" "${binary_path}" "${config_path}"

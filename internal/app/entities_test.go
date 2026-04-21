@@ -36,7 +36,7 @@ func TestDomainAndProjectManagersCreateUpdateAndClose(t *testing.T) {
 	}
 
 	project, err := projectManager.Create(context.Background(), CreateProjectRequest{
-		Name:      "Task CLI",
+		Name:      "Grind",
 		DomainRef: domain.Handle,
 	})
 	if err != nil {

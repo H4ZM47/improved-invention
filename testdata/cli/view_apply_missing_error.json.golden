@@ -1,5 +1,5 @@
 {
-  "command": "task view apply",
+  "command": "grind view apply",
   "error": {
     "code": "VIEW_NOT_FOUND",
     "details": {},

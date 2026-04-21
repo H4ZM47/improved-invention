@@ -606,7 +606,7 @@ func resolveTaskClassificationTx(ctx context.Context, tx *sql.Tx, currentDomainU
 	if result.projectUUID != nil {
 		project, err := queryProject(ctx, tx, projectSelectQuery+` WHERE p.uuid = ?`, *result.projectUUID)
 		if err != nil {
-			return taskClassification{}, fmt.Errorf("resolve task project domain: %w", err)
+			return taskClassification{}, fmt.Errorf("resolve grind project domain: %w", err)
 		}
 
 		if result.domainUUID == nil {

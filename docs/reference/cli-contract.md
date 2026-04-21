@@ -5,7 +5,7 @@ Status: Current v1 contract reference
 
 ## Purpose
 
-This document is the initial machine-usable contract for Task CLI v1. It complements the CLI surface and design spec by locking the behavior that automation and agents should rely on from the command line.
+This document is the initial machine-usable contract for Grind v1. It complements the CLI surface and design spec by locking the behavior that automation and agents should rely on from the command line.
 
 See also:
 
@@ -55,7 +55,7 @@ Successful responses use:
 ```json
 {
   "ok": true,
-  "command": "task create",
+  "command": "grind create",
   "data": {},
   "meta": {}
 }
@@ -75,7 +75,7 @@ Failed responses use:
 ```json
 {
   "ok": false,
-  "command": "task update",
+  "command": "grind update",
   "error": {
     "code": "CLAIM_REQUIRED",
     "exit_code": 30,
@@ -98,28 +98,28 @@ Field rules:
 ### Create
 
 ```text
-task create "Write CLI contract" --json
+grind create "Write CLI contract" --json
 ```
 
 ### Read
 
 ```text
-task show TASK-1042 --json
-task list --status active --tag cli --json
+grind show TASK-1042 --json
+grind list --status active --tag cli --json
 ```
 
 ### Mutate
 
 ```text
-task claim TASK-1042 --actor codex:agent-7 --json
-task update TASK-1042 --title "Revised title" --no-input --json
+grind claim TASK-1042 --actor codex:agent-7 --json
+grind update TASK-1042 --title "Revised title" --no-input --json
 ```
 
 ### Configuration And Introspection
 
 ```text
-task config show --json
-task version --json
+grind config show --json
+grind version --json
 ```
 
 ## Compatibility Policy

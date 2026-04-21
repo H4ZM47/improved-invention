@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/H4ZM47/task-cli/internal/testutil"
+	"github.com/H4ZM47/grind/internal/testutil"
 )
 
 func TestActorManagerBootstrapsHumanAndCreatesAgent(t *testing.T) {

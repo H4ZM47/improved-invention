@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 func TestTaskManagerCreateAndUpdateLifecycle(t *testing.T) {
@@ -130,7 +130,7 @@ func TestTaskManagerCreateInheritsMostSpecificDefaultAssignee(t *testing.T) {
 		t.Fatalf("CreateDomain() error = %v", err)
 	}
 	project, err := projectManager.Create(ctx, CreateProjectRequest{
-		Name:               "Task CLI",
+		Name:               "Grind",
 		DomainRef:          domain.Handle,
 		DefaultAssigneeRef: &agent.Handle,
 	})
@@ -415,7 +415,7 @@ func TestTaskManagerListAppliesFiltersAndSearch(t *testing.T) {
 		t.Fatalf("CreateDomain() error = %v", err)
 	}
 	project, err := projectManager.Create(ctx, CreateProjectRequest{
-		Name:      "Task CLI",
+		Name:      "Grind",
 		DomainRef: domain.Handle,
 	})
 	if err != nil {

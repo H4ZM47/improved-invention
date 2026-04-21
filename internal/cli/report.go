@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
-	"github.com/H4ZM47/task-cli/internal/report"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
+	"github.com/H4ZM47/grind/internal/report"
 	"github.com/spf13/cobra"
 )
 
@@ -83,7 +83,7 @@ func newReportServeCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				if err := writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task report serve",
+					"command": "grind report serve",
 					"data": map[string]any{
 						"url":  url,
 						"addr": listener.Addr().String(),
