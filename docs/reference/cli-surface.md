@@ -1,7 +1,7 @@
 # CLI Surface
 
-Date: 2026-04-20
-Status: Initial v1 command-group definition
+Date: 2026-04-21
+Status: Current v1 command-group definition
 
 ## Scope
 
@@ -100,12 +100,11 @@ Expected responsibility:
 
 - inspect actors
 - list configured humans and observed agents
-- configure or update the local human actor
 - show actor detail for assignment and claim history
 
 Note:
 
-- agents are still created implicitly on first use; `actor` exists for visibility and human configuration, not to force pre-registration.
+- agents are still created implicitly on first use; `actor` exists for visibility and inspection, not to force pre-registration.
 
 ### `view`
 
@@ -212,6 +211,9 @@ task
   pause
   resume
   close
+  time
+    add
+    edit
   project
     create
     list
@@ -227,7 +229,6 @@ task
   actor
     list
     show
-    configure-human
   view
     create
     list
@@ -245,7 +246,7 @@ task
   backup
     create
   restore
-    run
+    apply
   config
     show
 ```

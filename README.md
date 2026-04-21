@@ -6,7 +6,7 @@ GitHub: [H4ZM47/improved-invention](https://github.com/H4ZM47/improved-invention
 
 ## Status
 
-V1 scaffolding in progress. The design, CLI contract, command tree, service layer, storage layer, and embedded migrations are in place. See the design docs below for the full v1 scope.
+Core v1 workflows are in place on `main`: task CRUD, claims, domains/projects, links, relationships, time tracking, saved views, exports, backup/restore, and the read-only report server. Remaining release-hardening work is focused on package-manager distribution.
 
 ## What it is
 
@@ -83,6 +83,14 @@ Reference:
 - [JSON Success Examples](docs/reference/json-success-examples.md)
 - [JSON Error Examples](docs/reference/json-error-examples.md)
 - [Exit Codes](docs/reference/exit-codes.md)
+
+Guides:
+
+- [Installation and Bootstrap](docs/guides/installation-and-bootstrap.md)
+- [Human CLI Quickstart](docs/guides/human-cli-quickstart.md)
+- [Agent Integration](docs/guides/agent-integration.md)
+- [Claim and Operator Procedures](docs/guides/claim-and-operator-procedures.md)
+- [Backup, Export, and Report Usage](docs/guides/backup-export-report.md)
 
 ## License
 
