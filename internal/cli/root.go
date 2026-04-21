@@ -1,10 +1,6 @@
 package cli
 
-import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 // BuildInfo carries binary metadata injected at build time.
 type BuildInfo struct {
@@ -54,9 +50,11 @@ func NewRootCommand(build BuildInfo) *cobra.Command {
 		newTaskRenewCommand(opts),
 		newTaskReleaseCommand(opts),
 		newTaskUnlockCommand(opts),
-		newStubCommand("start", "Start task time tracking"),
-		newStubCommand("pause", "Pause task time tracking"),
-		newStubCommand("resume", "Resume task time tracking"),
+		newRelationshipCommand(opts),
+		newLinkCommand(opts),
+		newTaskStartCommand(opts),
+		newTaskPauseCommand(opts),
+		newTaskResumeCommand(opts),
 		newTaskCloseCommand(opts),
 		newProjectCommand(opts),
 		newDomainCommand(opts),
@@ -83,15 +81,4 @@ func newGroupCommand(use string, short string) *cobra.Command {
 	}
 
 	return cmd
-}
-
-func newStubCommand(use string, short string) *cobra.Command {
-	return &cobra.Command{
-		Use:   use,
-		Short: short,
-		Args:  cobra.ArbitraryArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return fmt.Errorf("%s is not implemented yet", cmd.CommandPath())
-		},
-	}
 }

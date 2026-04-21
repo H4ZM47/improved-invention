@@ -343,6 +343,114 @@ func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
 	}
 }
 
+func newTaskStartCommand(opts *GlobalOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:   "start <task-ref>",
+		Short: "Start task time tracking",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+
+			session, err := manager.StartSession(cmd.Context(), app.StartTaskSessionRequest{
+				Reference: args[0],
+			})
+			if err != nil {
+				return err
+			}
+
+			if opts.JSON {
+				return writeJSON(cmd, map[string]any{
+					"ok":      true,
+					"command": "task start",
+					"data": map[string]any{
+						"session": session,
+					},
+					"meta": map[string]any{},
+				})
+			}
+
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
+			return err
+		},
+	}
+}
+
+func newTaskPauseCommand(opts *GlobalOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:   "pause <task-ref>",
+		Short: "Pause task time tracking",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+
+			session, err := manager.PauseSession(cmd.Context(), app.PauseTaskSessionRequest{
+				Reference: args[0],
+			})
+			if err != nil {
+				return err
+			}
+
+			if opts.JSON {
+				return writeJSON(cmd, map[string]any{
+					"ok":      true,
+					"command": "task pause",
+					"data": map[string]any{
+						"session": session,
+					},
+					"meta": map[string]any{},
+				})
+			}
+
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
+			return err
+		},
+	}
+}
+
+func newTaskResumeCommand(opts *GlobalOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:   "resume <task-ref>",
+		Short: "Resume task time tracking",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+
+			session, err := manager.ResumeSession(cmd.Context(), app.ResumeTaskSessionRequest{
+				Reference: args[0],
+			})
+			if err != nil {
+				return err
+			}
+
+			if opts.JSON {
+				return writeJSON(cmd, map[string]any{
+					"ok":      true,
+					"command": "task resume",
+					"data": map[string]any{
+						"session": session,
+					},
+					"meta": map[string]any{},
+				})
+			}
+
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
+			return err
+		},
+	}
+}
+
 func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "release <task-ref>",
