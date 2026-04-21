@@ -111,7 +111,7 @@ grind list --status active --tag cli --json
 ### Mutate
 
 ```text
-grind claim TASK-1042 --actor codex:agent-7 --json
+grind claim acquire TASK-1042 --actor codex:agent-7 --json
 grind update TASK-1042 --title "Revised title" --no-input --json
 ```
 

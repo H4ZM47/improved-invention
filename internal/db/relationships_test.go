@@ -106,3 +106,19 @@ func TestCreateRelationshipEnforcesOneParentHierarchy(t *testing.T) {
 		t.Fatal("second CreateRelationship() succeeded, want constraint failure")
 	}
 }
+
+func TestCreateRelationshipRejectsSelfLink(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	insertTask(t, db, "task-source", "TASK-1", "Source", nil, nil)
+
+	_, err := CreateRelationship(context.Background(), db, RelationshipCreateInput{
+		SourceTaskReference: "TASK-1",
+		TargetTaskReference: "TASK-1",
+		RelationshipType:    RelationshipTypeBlocks,
+	})
+	if !errors.Is(err, ErrSelfRelationship) {
+		t.Fatalf("CreateRelationship() error = %v, want ErrSelfRelationship", err)
+	}
+}

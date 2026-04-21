@@ -66,7 +66,7 @@ Payload:
 Command:
 
 ```text
-grind claim TASK-1042 --actor codex:agent-9 --json
+grind claim acquire TASK-1042 --actor codex:agent-9 --json
 ```
 
 Exit code:
@@ -80,7 +80,7 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "grind claim",
+  "command": "grind claim acquire",
   "error": {
     "code": "CLAIM_CONFLICT",
     "exit_code": 31,
@@ -140,7 +140,7 @@ Payload:
 Command:
 
 ```text
-grind close TASK-1042 --status backlog --json
+grind open TASK-1042 --json
 ```
 
 Exit code:
@@ -154,19 +154,12 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "grind close",
+  "command": "grind open",
   "error": {
     "code": "INVALID_STATUS_TRANSITION",
     "exit_code": 40,
-    "message": "cannot close task TASK-1042 into status backlog",
-    "details": {
-      "from": "active",
-      "requested_to": "backlog",
-      "allowed": [
-        "completed",
-        "cancelled"
-      ]
-    }
+    "message": "cannot change status directly from active to backlog",
+    "details": {}
   }
 }
 ```

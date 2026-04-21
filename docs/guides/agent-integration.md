@@ -73,7 +73,7 @@ Minimal startup example:
 ```sh
 grind --config --json --actor codex:agent-7
 grind list --status backlog --json --actor codex:agent-7
-grind claim TASK-1 --json --no-input --actor codex:agent-7
+grind claim acquire TASK-1 --json --no-input --actor codex:agent-7
 grind update TASK-1 --status active --json --no-input --actor codex:agent-7
 ```
 
@@ -107,7 +107,7 @@ Claims are exclusive task locks. A normal task update should fail unless the cur
 ### Claim a task
 
 ```sh
-grind claim TASK-1 --json --no-input --actor codex:agent-7
+grind claim acquire TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 ### Update after claiming
@@ -124,21 +124,21 @@ grind update TASK-1 \
 ### Renew a long-running claim
 
 ```sh
-grind renew TASK-1 --json --no-input --actor codex:agent-7
+grind claim renew TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 ### Release a task when work is done or handed off
 
 ```sh
-grind release TASK-1 --json --no-input --actor codex:agent-7
+grind claim release TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 ### Manual unlock
 
-`unlock` is an operator action, not the normal completion path:
+`claim unlock` is an operator action, not the normal completion path:
 
 ```sh
-grind unlock TASK-1 --json --no-input --actor codex:agent-7
+grind claim unlock TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 ## Status Model
@@ -155,10 +155,10 @@ Task lifecycle in v1:
 Typical agent path:
 
 ```sh
-grind claim TASK-1 --json --no-input --actor codex:agent-7
+grind claim acquire TASK-1 --json --no-input --actor codex:agent-7
 grind update TASK-1 --status active --json --no-input --actor codex:agent-7
-grind close TASK-1 --status completed --json --no-input --actor codex:agent-7
-grind release TASK-1 --json --no-input --actor codex:agent-7
+grind close TASK-1 --json --no-input --actor codex:agent-7
+grind claim release TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 If a task is blocked:
@@ -197,9 +197,9 @@ Without one of those flags, the command fails with `ASSIGNMENT_DECISION_REQUIRED
 Use this when the agent is actively working:
 
 ```sh
-grind start TASK-1 --json --no-input --actor codex:agent-7
-grind pause TASK-1 --json --no-input --actor codex:agent-7
-grind resume TASK-1 --json --no-input --actor codex:agent-7
+grind time start TASK-1 --json --no-input --actor codex:agent-7
+grind time pause TASK-1 --json --no-input --actor codex:agent-7
+grind time resume TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 ### Manual time entries
@@ -244,15 +244,13 @@ grind link add TASK-1 file /tmp/build.log \
   --actor codex:agent-7
 ```
 
-### Add task relationships
-
-Use the relationship aliases in their intuitive direction:
+### Add task links
 
 ```sh
-grind relationship add parent TASK-1 TASK-2 --json --no-input --actor codex:agent-7
-grind relationship add child TASK-1 TASK-3 --json --no-input --actor codex:agent-7
-grind relationship add blocks TASK-1 TASK-4 --json --no-input --actor codex:agent-7
-grind relationship add related_to TASK-1 TASK-5 --json --no-input --actor codex:agent-7
+grind link add TASK-1 parent TASK-2 --json --no-input --actor codex:agent-7
+grind link add TASK-1 child TASK-3 --json --no-input --actor codex:agent-7
+grind link add TASK-1 blocks TASK-4 --json --no-input --actor codex:agent-7
+grind link add TASK-1 related TASK-5 --json --no-input --actor codex:agent-7
 ```
 
 ## Repo-Aware Helpers
@@ -268,7 +266,7 @@ grind list --here --json --actor codex:agent-7
 ### Attach the current repo/worktree to a task
 
 ```sh
-grind link attach-current-repo TASK-1 --json --no-input --actor codex:agent-7
+grind link-repo TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 This attaches repo/worktree metadata only when the agent asks for it.
@@ -284,14 +282,14 @@ grind export json --output tasks.json --json --actor codex:agent-7
 ### Start the local read-only report server
 
 ```sh
-grind report serve --addr 127.0.0.1:8080 --json --actor codex:agent-7
+grind serve --addr 127.0.0.1:8080 --json --actor codex:agent-7
 ```
 
 ### Full backup and restore
 
 ```sh
 grind backup create --output grind-backup.sqlite --json --actor codex:agent-7
-grind restore apply --input grind-backup.sqlite --force --json --actor codex:agent-7
+grind restore --input grind-backup.sqlite --force --json --actor codex:agent-7
 ```
 
 ## Failure Handling
@@ -342,17 +340,17 @@ This is the smallest safe work loop for an autonomous agent:
 
 ```sh
 grind list --status backlog --json --actor codex:agent-7
-grind claim TASK-1 --json --no-input --actor codex:agent-7
+grind claim acquire TASK-1 --json --no-input --actor codex:agent-7
 grind update TASK-1 --status active --json --no-input --actor codex:agent-7
-grind link attach-current-repo TASK-1 --json --no-input --actor codex:agent-7
-grind close TASK-1 --status completed --json --no-input --actor codex:agent-7
-grind release TASK-1 --json --no-input --actor codex:agent-7
+grind link-repo TASK-1 --json --no-input --actor codex:agent-7
+grind close TASK-1 --json --no-input --actor codex:agent-7
+grind claim release TASK-1 --json --no-input --actor codex:agent-7
 ```
 
 ## Practical Advice
 
 - Prefer handles like `TASK-1` over UUIDs unless the workflow already has UUIDs.
 - Log the full JSON response for failed mutations.
-- Use `config show --json` at startup if the database path or actor identity matters.
+- Use `grind --config --json` at startup if the database path or actor identity matters.
 - Keep one task claimed at a time unless the surrounding workflow explicitly requires more.
 - Attach repo context explicitly when working inside a git checkout so later `--here` queries stay useful.

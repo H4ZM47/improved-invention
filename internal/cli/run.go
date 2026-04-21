@@ -128,6 +128,8 @@ func classifyFailure(err error, commandName string) failureClass {
 		failure.Code, failure.ExitCode = "VIEW_NOT_FOUND", 60
 	case errors.Is(err, taskdb.ErrInvalidRelationshipType), errors.Is(err, taskdb.ErrInvalidLinkType):
 		failure.Code, failure.ExitCode = "INVALID_RELATIONSHIP", 41
+	case errors.Is(err, taskdb.ErrSelfRelationship):
+		failure.Code, failure.ExitCode = "VALIDATION_ERROR", 11
 	case errors.Is(err, gitctx.ErrNotGitRepo):
 		failure.Code, failure.ExitCode = "VALIDATION_ERROR", 11
 	case isFilterError(err):
@@ -376,6 +378,8 @@ func normalizeValidationMessage(err error, commandName string) string {
 	switch {
 	case errors.Is(err, gitctx.ErrNotGitRepo):
 		return "this command must be run inside a git repository"
+	case errors.Is(err, taskdb.ErrSelfRelationship):
+		return "a task link cannot target the same task"
 	case strings.Contains(msg, "read --description-file"):
 		return msg
 	case strings.Contains(msg, "invalid task status transition from "):

@@ -20,7 +20,7 @@ Grind is designed for a different environment: one local machine, one human user
 | Low-friction capture | `title` is the only required field for a new task |
 | Agent-safe contract | `--json`, `--no-input`, and deterministic exit codes are first-class |
 | Exclusive claims | only one worker mutates a task at a time |
-| First-class structure | tasks, domains, projects, actors, links, relationships, and saved views |
+| First-class structure | tasks, domains, projects, milestones, actors, links, and saved views |
 | Event history | all meaningful changes are recorded in an append-only log |
 | Read and portability paths | JSON, CSV, TXT, Markdown, local HTML reports, backup, and restore |
 | Local-first storage | SQLite today, with a clean path to a future daemon or remote backend |
@@ -90,17 +90,17 @@ grind create "Draft release notes"
 Claim it before mutating it:
 
 ```sh
-grind claim TASK-1
+grind claim acquire TASK-1
 grind update TASK-1 --status active
 ```
 
 Track progress:
 
 ```sh
-grind start TASK-1
-grind pause TASK-1
-grind resume TASK-1
-grind close TASK-1 --status completed
+grind time start TASK-1
+grind time pause TASK-1
+grind time resume TASK-1
+grind close TASK-1
 ```
 
 Find work again later:
@@ -118,7 +118,7 @@ Agents should always use explicit non-interactive calls:
 
 ```sh
 grind list --status backlog --json --actor codex:agent-7
-grind claim TASK-1 --json --no-input --actor codex:agent-7
+grind claim acquire TASK-1 --json --no-input --actor codex:agent-7
 grind update TASK-1 --status active --json --no-input --actor codex:agent-7
 ```
 
@@ -176,12 +176,13 @@ The root command is `grind`.
 Common commands:
 
 - `grind create`, `grind list`, `grind show`, `grind update`
-- `grind claim`, `grind renew`, `grind release`, `grind unlock`
-- `grind start`, `grind pause`, `grind resume`, `grind time add`, `grind time edit`, `grind close`
+- `grind open`, `grind close`, `grind cancel`
+- `grind claim acquire|renew|release|unlock`
+- `grind time start|pause|resume`, `grind time add`, `grind time edit`
 - `grind domain ...`, `grind project ...`, `grind actor ...`
-- `grind relationship ...`, `grind link ...`
-- `grind view ...`, `grind export ...`, `grind report serve`
-- `grind backup create`, `grind restore apply`
+- `grind milestone ...`, `grind view ...`, `grind export ...`, `grind serve`
+- `grind link ...`, `grind link-repo`
+- `grind backup create`, `grind restore`
 - `grind --config`, `grind --version`, `grind --agents`
 
 Global flags:
@@ -201,14 +202,14 @@ Grind gives you three different read/portability paths:
 | Tool | Use it when |
 | --- | --- |
 | `grind export ...` | you want JSON, CSV, TXT, or Markdown output |
-| `grind report serve` | you want a local read-only browser view |
-| `grind backup create` / `grind restore apply` | you want full-fidelity move or recovery |
+| `grind serve` | you want a local read-only browser view |
+| `grind backup create` / `grind restore` | you want full-fidelity move or recovery |
 
 Examples:
 
 ```sh
 grind export json --output tasks.json
-grind report serve --addr 127.0.0.1:8080
+grind serve --addr 127.0.0.1:8080
 grind backup create --output grind-backup.sqlite
 ```
 
@@ -217,7 +218,7 @@ grind backup create --output grind-backup.sqlite
 When you run the CLI inside a git repo or worktree, it can help without mutating task data implicitly.
 
 - `grind list --here` filters to tasks linked to the current repo/worktree
-- `grind link attach-current-repo TASK-1` explicitly records the current repo/worktree context
+- `grind link-repo TASK-1` explicitly records the current repo/worktree context
 
 That keeps repo-aware workflows useful for humans and agents without hidden writes.
 

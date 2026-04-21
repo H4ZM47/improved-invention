@@ -186,7 +186,7 @@ func (s *Server) handleAPITasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	payload := map[string]any{
 		"ok":      true,
-		"command": "grind report api tasks",
+		"command": "grind serve api tasks",
 		"data":    map[string]any{"items": tasks},
 		"meta": map[string]any{
 			"count":   len(tasks),

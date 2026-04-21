@@ -97,7 +97,7 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 	var label string
 
 	cmd := &cobra.Command{
-		Use:   "add <type> <source> <target>",
+		Use:   "add <source> <relationship> <target>",
 		Short: "Create a typed link to a task or external resource",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -108,8 +108,8 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 			defer db.Close()
 
 			link, err := manager.Create(cmd.Context(), app.CreateLinkRequest{
-				Type:    args[0],
-				TaskRef: args[1],
+				TaskRef: args[0],
+				Type:    args[1],
 				Target:  args[2],
 				Label:   label,
 			})
@@ -134,7 +134,7 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&label, "label", "", "Set a human-friendly label for the link")
-	cmd.Long = "Create a typed link.\n\nTask links use a task handle as the target, for example `grind link add blocks TASK-1 TASK-2`.\nExternal links use a URL or path target, for example `grind link add url TASK-1 https://example.com/spec`."
+	cmd.Long = "Create a typed link.\n\nTask links use the conversational order `source relationship target`, for example `grind link add TASK-1 blocks TASK-2`.\nExternal links use the same order, for example `grind link add TASK-1 url https://example.com/spec`."
 	return cmd
 }
 
@@ -180,7 +180,7 @@ func newLinkListCommand(opts *GlobalOptions) *cobra.Command {
 
 func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "remove <type> <source> <target>",
+		Use:   "remove <source> <relationship> <target>",
 		Short: "Remove a typed link from a task",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -191,8 +191,8 @@ func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
 			defer db.Close()
 
 			req := app.RemoveLinkRequest{
-				TaskRef: args[1],
-				Type:    &args[0],
+				TaskRef: args[0],
+				Type:    &args[1],
 				Target:  &args[2],
 			}
 

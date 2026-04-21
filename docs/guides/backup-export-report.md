@@ -4,7 +4,7 @@ Grind supports three different read and portability paths:
 
 - `backup`: full-fidelity database copies for disaster recovery or machine moves
 - `export`: portable task snapshots in JSON, CSV, TXT, or Markdown
-- `report`: a read-only local HTML and JSON server for browsing the current DB
+- `serve`: a read-only local HTML and JSON server for browsing the current DB
 
 ## Full-Fidelity Backups
 
@@ -29,13 +29,13 @@ Use backups when you want a restorable copy of the entire system, not just a rep
 Restore into a target database:
 
 ```sh
-grind restore apply --input ./grind-backup.sqlite --db ./restored-grind.db --json
+grind restore --input ./grind-backup.sqlite --db ./restored-grind.db --json
 ```
 
 Overwrite an existing target database:
 
 ```sh
-grind restore apply --input ./grind-backup.sqlite --db ./grind.db --force --json
+grind restore --input ./grind-backup.sqlite --db ./grind.db --force --json
 ```
 
 Operational notes:
@@ -74,7 +74,7 @@ Use exports when you need:
 Start the read-only report server:
 
 ```sh
-grind report serve --addr 127.0.0.1:8080
+grind serve --addr 127.0.0.1:8080
 ```
 
 Key routes:
@@ -118,7 +118,7 @@ Use `export` when:
 - you need a derived artifact for another tool or human reader
 - you do not need to restore the exact DB later
 
-Use `report` when:
+Use `serve` when:
 
 - you want a local read-only browser view over the live database
 - you need to share a local filtered view without teaching someone the CLI first
