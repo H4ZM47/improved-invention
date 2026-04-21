@@ -1,6 +1,9 @@
 package app
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Services groups the service-layer interfaces that CLI command handlers call.
 type Services interface {
@@ -49,6 +52,9 @@ type DomainService interface {
 type ActorService interface {
 	List(context.Context, ListActorsRequest) ([]ActorRecord, error)
 	Show(context.Context, ShowActorRequest) (ActorRecord, error)
+	BootstrapConfiguredHumanActor(context.Context) (ActorRecord, error)
+	GetOrCreateAgentActor(context.Context, string) (ActorRecord, error)
+	ParseAgentIdentity(string) (AgentIdentityRecord, error)
 }
 
 // ViewService defines saved-view workflows.
@@ -70,47 +76,93 @@ type ShowConfigResult struct {
 }
 
 type TaskRecord struct {
-	Handle string
-	Title  string
-	Status string
+	Handle          string   `json:"handle"`
+	UUID            string   `json:"uuid"`
+	Title           string   `json:"title"`
+	Description     string   `json:"description"`
+	Status          string   `json:"status"`
+	DomainID        *string  `json:"domain_id"`
+	ProjectID       *string  `json:"project_id"`
+	AssigneeActorID *string  `json:"assignee_actor_id"`
+	DueAt           *string  `json:"due_at"`
+	Tags            []string `json:"tags"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
+	ClosedAt        *string  `json:"closed_at"`
 }
 
 type ProjectRecord struct {
-	Handle string
-	Name   string
-	Status string
+	Handle string `json:"handle"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 type DomainRecord struct {
-	Handle string
-	Name   string
-	Status string
+	Handle string `json:"handle"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 type ActorRecord struct {
-	Handle string
-	Kind   string
-	Label  string
+	Handle      string `json:"handle"`
+	Kind        string `json:"kind"`
+	Label       string `json:"label"`
+	UUID        string `json:"uuid"`
+	Provider    string `json:"provider"`
+	ExternalID  string `json:"external_id"`
+	DisplayName string `json:"display_name"`
+}
+
+type AgentIdentityRecord struct {
+	Provider   string `json:"provider"`
+	ExternalID string `json:"external_id"`
 }
 
 type ViewRecord struct {
-	Name string
+	Name string `json:"name"`
 }
 
 type ClaimRecord struct {
-	TaskHandle  string
-	ActorHandle string
-	Status      string
+	TaskHandle  string `json:"task_handle"`
+	ActorHandle string `json:"actor_handle"`
+	Status      string `json:"status"`
 }
 
-type CreateTaskRequest struct{}
+type CreateTaskRequest struct {
+	Title       string
+	Description string
+}
+
 type ListTasksRequest struct{}
-type ShowTaskRequest struct{}
-type UpdateTaskRequest struct{}
-type ClaimTaskRequest struct{}
-type RenewClaimRequest struct{}
-type ReleaseClaimRequest struct{}
-type UnlockTaskRequest struct{}
+
+type ShowTaskRequest struct {
+	Reference string
+}
+
+type UpdateTaskRequest struct {
+	Reference   string
+	Title       *string
+	Description *string
+	Tags        *[]string
+	DomainRef   *string
+	ProjectRef  *string
+	DueAt       *string
+	Status      *string
+}
+type ClaimTaskRequest struct {
+	Reference string
+	Lease     time.Duration
+}
+type RenewClaimRequest struct {
+	Reference string
+	Lease     time.Duration
+}
+type ReleaseClaimRequest struct {
+	Reference string
+}
+type UnlockTaskRequest struct {
+	Reference string
+}
 
 type CreateProjectRequest struct{}
 type ListProjectsRequest struct{}
@@ -123,7 +175,9 @@ type ShowDomainRequest struct{}
 type UpdateDomainRequest struct{}
 
 type ListActorsRequest struct{}
-type ShowActorRequest struct{}
+type ShowActorRequest struct {
+	Reference string
+}
 
 type CreateViewRequest struct{}
 type ListViewsRequest struct{}

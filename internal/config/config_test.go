@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"os/user"
 	"path/filepath"
 	"testing"
 	"time"
@@ -15,6 +17,9 @@ func TestResolveDefaults(t *testing.T) {
 		},
 		UserConfigDir: func() (string, error) {
 			return "/tmp/task-home", nil
+		},
+		CurrentUser: func() (*user.User, error) {
+			return nil, errors.New("no current user")
 		},
 	})
 	if err != nil {
@@ -35,6 +40,10 @@ func TestResolveDefaults(t *testing.T) {
 
 	if got, want := cfg.ClaimLease, 24*time.Hour; got != want {
 		t.Fatalf("ClaimLease = %v, want %v", got, want)
+	}
+
+	if got, want := cfg.HumanName, "local-human"; got != want {
+		t.Fatalf("HumanName = %q, want %q", got, want)
 	}
 }
 
@@ -57,6 +66,9 @@ func TestResolvePrefersOverrides(t *testing.T) {
 		UserConfigDir: func() (string, error) {
 			return "/tmp/task-home", nil
 		},
+		CurrentUser: func() (*user.User, error) {
+			return &user.User{Username: "ignored-user"}, nil
+		},
 	})
 	if err != nil {
 		t.Fatalf("Resolve() error = %v", err)
@@ -68,6 +80,10 @@ func TestResolvePrefersOverrides(t *testing.T) {
 
 	if got, want := cfg.Actor, "codex:agent-1"; got != want {
 		t.Fatalf("Actor = %q, want %q", got, want)
+	}
+
+	if got, want := cfg.HumanName, "ignored-user"; got != want {
+		t.Fatalf("HumanName = %q, want %q", got, want)
 	}
 }
 
@@ -83,6 +99,8 @@ func TestResolveParsesEnvironmentRuntimeSettings(t *testing.T) {
 				return "9000", true
 			case "TASK_CLAIM_LEASE_HOURS":
 				return "12", true
+			case "TASK_HUMAN_NAME":
+				return "alex", true
 			default:
 				return "", false
 			}
@@ -109,6 +127,10 @@ func TestResolveParsesEnvironmentRuntimeSettings(t *testing.T) {
 
 	if got, want := cfg.ClaimLease, 12*time.Hour; got != want {
 		t.Fatalf("ClaimLease = %v, want %v", got, want)
+	}
+
+	if got, want := cfg.HumanName, "alex"; got != want {
+		t.Fatalf("HumanName = %q, want %q", got, want)
 	}
 }
 

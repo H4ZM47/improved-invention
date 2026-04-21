@@ -1,2 +1,2 @@
--- Placeholder migration asset.
--- The first real schema migration will replace this bootstrap-only file.
+-- Bootstrap placeholder retained so existing local development databases
+-- created before the core schema migration continue to advance cleanly.

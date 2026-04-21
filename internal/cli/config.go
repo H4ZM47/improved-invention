@@ -37,6 +37,7 @@ func newConfigShowCommand(opts *GlobalOptions) *cobra.Command {
 							"data_dir":        cfg.DataDir,
 							"db_path":         cfg.DBPath,
 							"actor":           cfg.Actor,
+							"human_name":      cfg.HumanName,
 							"busy_timeout_ms": cfg.BusyTimeout.Milliseconds(),
 							"claim_lease_h":   int64(cfg.ClaimLease.Hours()),
 							"source_order":    cfg.SourceOrder,
@@ -52,10 +53,11 @@ func newConfigShowCommand(opts *GlobalOptions) *cobra.Command {
 
 			_, err = fmt.Fprintf(
 				cmd.OutOrStdout(),
-				"data_dir=%s\ndb_path=%s\nactor=%s\nbusy_timeout_ms=%d\nclaim_lease_h=%d\n",
+				"data_dir=%s\ndb_path=%s\nactor=%s\nhuman_name=%s\nbusy_timeout_ms=%d\nclaim_lease_h=%d\n",
 				cfg.DataDir,
 				cfg.DBPath,
 				cfg.Actor,
+				cfg.HumanName,
 				cfg.BusyTimeout.Milliseconds(),
 				int64(cfg.ClaimLease.Hours()),
 			)
