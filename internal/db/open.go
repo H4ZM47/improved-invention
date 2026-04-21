@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
 	"github.com/H4ZM47/improved-invention/internal/migrate"
@@ -38,6 +39,10 @@ func Open(ctx context.Context, cfg taskconfig.Resolved) (*sql.DB, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
+	if err := expireAllStaleClaims(ctx, db); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 
 	return db, nil
 }
@@ -55,5 +60,16 @@ func applyRuntimePragmas(ctx context.Context, db *sql.DB, cfg taskconfig.Resolve
 		}
 	}
 
+	return nil
+}
+
+func expireAllStaleClaims(ctx context.Context, db *sql.DB) error {
+	if _, err := db.ExecContext(ctx, `
+		UPDATE claims
+		SET released_at = CURRENT_TIMESTAMP, release_reason = 'expired'
+		WHERE released_at IS NULL AND expires_at <= ?
+	`, time.Now().UTC().Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("expire stale claims on open: %w", err)
+	}
 	return nil
 }

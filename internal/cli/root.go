@@ -63,8 +63,8 @@ func NewRootCommand(build BuildInfo) *cobra.Command {
 		newViewCommand(opts),
 		newExportCommand(opts),
 		newReportCommand(opts),
-		newGroupCommand("backup", "Create full-fidelity backups"),
-		newGroupCommand("restore", "Restore from a full-fidelity backup"),
+		newBackupCommand(opts),
+		newRestoreCommand(opts),
 		newConfigCommand(opts),
 		newVersionCommand(build, opts),
 	)
