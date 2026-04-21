@@ -4,7 +4,7 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/release-common.sh"
 
-readonly FORMULA_OUTPUT="${FORMULA_OUTPUT:-${METADATA_OUTPUT_DIR}/homebrew-tap/Formula/task-cli.rb}"
+readonly FORMULA_OUTPUT="${FORMULA_OUTPUT:-${METADATA_OUTPUT_DIR}/homebrew-tap/Formula/task.rb}"
 
 darwin_amd64_archive="$(archive_path "${VERSION_VALUE}" darwin amd64)"
 darwin_arm64_archive="$(archive_path "${VERSION_VALUE}" darwin arm64)"
@@ -20,7 +20,7 @@ darwin_amd64_sha="$(sha256_file "${darwin_amd64_archive}")"
 darwin_arm64_sha="$(sha256_file "${darwin_arm64_archive}")"
 
 cat > "${FORMULA_OUTPUT}" <<EOF
-class TaskCli < Formula
+class Task < Formula
   desc "Local-first task management CLI for humans and AI agents"
   homepage "https://github.com/${REPO_OWNER}/${REPO_NAME}"
   license "MIT"
