@@ -68,7 +68,7 @@ func TestRestoreApplyRestoresArtifactIntoTargetDatabase(t *testing.T) {
 	}
 
 	restoreRoot := NewRootCommand(BuildInfo{})
-	restoreRoot.SetArgs([]string{"--db", targetPath, "--json", "restore", "apply", "--input", backupPath})
+	restoreRoot.SetArgs([]string{"--db", targetPath, "--json", "restore", "--input", backupPath})
 	var restoreOutput bytes.Buffer
 	restoreRoot.SetOut(&restoreOutput)
 	restoreRoot.SetErr(&restoreOutput)
@@ -89,7 +89,7 @@ func TestRestoreApplyRestoresArtifactIntoTargetDatabase(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "grind restore apply"; got != want {
+	if got, want := payload.Command, "grind restore"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Data.DBPath, targetPath; got != want {
@@ -136,7 +136,7 @@ func TestRestoreApplyRequiresForceToOverwriteExistingDatabase(t *testing.T) {
 	_ = targetSeed
 
 	restoreRoot := NewRootCommand(BuildInfo{})
-	restoreRoot.SetArgs([]string{"--db", targetPath, "restore", "apply", "--input", backupPath})
+	restoreRoot.SetArgs([]string{"--db", targetPath, "restore", "--input", backupPath})
 	var restoreOutput bytes.Buffer
 	restoreRoot.SetOut(&restoreOutput)
 	restoreRoot.SetErr(&restoreOutput)

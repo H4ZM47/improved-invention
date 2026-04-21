@@ -18,7 +18,9 @@ func newDomainCommand(opts *GlobalOptions) *cobra.Command {
 		newDomainListCommand(opts),
 		newDomainShowCommand(opts),
 		newDomainUpdateCommand(opts),
+		newDomainOpenCommand(opts),
 		newDomainCloseCommand(opts),
+		newDomainCancelCommand(opts),
 	)
 	return cmd
 }
@@ -230,16 +232,28 @@ func newDomainUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	return cmd
 }
 
+func newDomainOpenCommand(opts *GlobalOptions) *cobra.Command {
+	return newDomainStatusCommand(opts, "open", "Reopen a domain", "backlog")
+}
+
 func newDomainCloseCommand(opts *GlobalOptions) *cobra.Command {
-	var status string
+	return newDomainStatusCommand(opts, "close", "Close a domain", "completed")
+}
+
+func newDomainCancelCommand(opts *GlobalOptions) *cobra.Command {
+	return newDomainStatusCommand(opts, "cancel", "Cancel a domain", "cancelled")
+}
+
+func newDomainStatusCommand(opts *GlobalOptions, use, short, statusValue string) *cobra.Command {
+	var retiredStatus string
 
 	cmd := &cobra.Command{
-		Use:   "close <domain-ref>",
-		Short: "Close or reopen a domain",
+		Use:   use + " <domain-ref>",
+		Short: short,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if status == "" {
-				status = "completed"
+			if cmd.Flags().Changed("status") {
+				return domainLifecycleMigrationError(use, args[0], retiredStatus)
 			}
 
 			_, db, manager, err := domainManagerFromOptions(cmd.Context(), opts)
@@ -250,7 +264,7 @@ func newDomainCloseCommand(opts *GlobalOptions) *cobra.Command {
 
 			domain, err := manager.Update(cmd.Context(), app.UpdateDomainRequest{
 				Reference: args[0],
-				Status:    &status,
+				Status:    &statusValue,
 			})
 			if err != nil {
 				return err
@@ -259,7 +273,7 @@ func newDomainCloseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind domain close",
+					"command": "grind domain " + use,
 					"data": map[string]any{
 						"domain": domain,
 					},
@@ -272,8 +286,22 @@ func newDomainCloseCommand(opts *GlobalOptions) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&status, "status", "", "Set the terminal or reopened domain status")
+	cmd.Flags().StringVar(&retiredStatus, "status", "", "Retired domain lifecycle flag; use the explicit open, close, or cancel verbs")
+	_ = cmd.Flags().MarkHidden("status")
 	return cmd
+}
+
+func domainLifecycleMigrationError(use, handle, status string) error {
+	switch status {
+	case "backlog":
+		return fmt.Errorf("`grind domain close %s --status backlog` was removed; use `grind domain open %s`", handle, handle)
+	case "completed":
+		return fmt.Errorf("`grind domain close %s --status completed` was removed; use `grind domain close %s`", handle, handle)
+	case "cancelled":
+		return fmt.Errorf("`grind domain close %s --status cancelled` was removed; use `grind domain cancel %s`", handle, handle)
+	default:
+		return fmt.Errorf("the `--status` flag was removed from `grind domain %s`; use `grind domain open`, `grind domain close`, or `grind domain cancel`", use)
+	}
 }
 
 func domainManagerFromOptions(ctx context.Context, opts *GlobalOptions) (taskconfig.Resolved, *sql.DB, app.DomainManager, error) {

@@ -14,21 +14,29 @@ import (
 )
 
 func newLinkCommand(opts *GlobalOptions) *cobra.Command {
-	cmd := newGroupCommand("link", "Manage task external links")
+	cmd := &cobra.Command{
+		Use:   "link",
+		Short: "Manage task connections",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) >= 1 && args[0] == "attach-current-repo" {
+				return fmt.Errorf("`grind link attach-current-repo` was removed; use `grind link-repo`")
+			}
+			return cmd.Help()
+		},
+	}
 	cmd.AddCommand(
 		newLinkAddCommand(opts),
-		newLinkAttachCurrentRepoCommand(opts),
 		newLinkListCommand(opts),
 		newLinkRemoveCommand(opts),
 	)
 	return cmd
 }
 
-func newLinkAttachCurrentRepoCommand(opts *GlobalOptions) *cobra.Command {
+func newLinkRepoCommand(opts *GlobalOptions) *cobra.Command {
 	var noRepo bool
 
 	cmd := &cobra.Command{
-		Use:   "attach-current-repo <task-ref>",
+		Use:   "link-repo <task-ref>",
 		Short: "Explicitly attach the current repo/worktree context to a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -59,7 +67,7 @@ func newLinkAttachCurrentRepoCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind link attach-current-repo",
+					"command": "grind link-repo",
 					"data": map[string]any{
 						"repo_link":     result.RepoLink,
 						"worktree_link": result.WorktreeLink,
@@ -89,8 +97,8 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 	var label string
 
 	cmd := &cobra.Command{
-		Use:   "add <task-ref> <type> <target>",
-		Short: "Create an external link for a task",
+		Use:   "add <type> <source> <target>",
+		Short: "Create a typed link to a task or external resource",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, db, manager, err := linkManagerFromOptions(cmd.Context(), opts)
@@ -100,8 +108,8 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 			defer db.Close()
 
 			link, err := manager.Create(cmd.Context(), app.CreateLinkRequest{
-				TaskRef: args[0],
-				Type:    args[1],
+				Type:    args[0],
+				TaskRef: args[1],
 				Target:  args[2],
 				Label:   label,
 			})
@@ -120,19 +128,20 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 				})
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", link.UUID, link.Type, link.Target)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\n", link.UUID, link.Type, link.TargetKind, link.Target)
 			return err
 		},
 	}
 
 	cmd.Flags().StringVar(&label, "label", "", "Set a human-friendly label for the link")
+	cmd.Long = "Create a typed link.\n\nTask links use a task handle as the target, for example `grind link add blocks TASK-1 TASK-2`.\nExternal links use a URL or path target, for example `grind link add url TASK-1 https://example.com/spec`."
 	return cmd
 }
 
 func newLinkListCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list <task-ref>",
-		Short: "List external links for a task",
+		Short: "List task and external links touching a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, db, manager, err := linkManagerFromOptions(cmd.Context(), opts)
@@ -160,7 +169,7 @@ func newLinkListCommand(opts *GlobalOptions) *cobra.Command {
 			}
 
 			for _, item := range items {
-				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", item.UUID, item.Type, item.Target); err != nil {
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\n", item.UUID, item.Type, item.TargetKind, item.Target); err != nil {
 					return err
 				}
 			}
@@ -170,13 +179,10 @@ func newLinkListCommand(opts *GlobalOptions) *cobra.Command {
 }
 
 func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
-	var linkType string
-	var target string
-
 	cmd := &cobra.Command{
-		Use:   "remove <task-ref> <link-ref>",
-		Short: "Remove an external link from a task",
-		Args:  cobra.ExactArgs(2),
+		Use:   "remove <type> <source> <target>",
+		Short: "Remove a typed link from a task",
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, db, manager, err := linkManagerFromOptions(cmd.Context(), opts)
 			if err != nil {
@@ -185,14 +191,9 @@ func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
 			defer db.Close()
 
 			req := app.RemoveLinkRequest{
-				TaskRef: args[0],
-				LinkRef: args[1],
-			}
-			if cmd.Flags().Changed("type") {
-				req.Type = &linkType
-			}
-			if cmd.Flags().Changed("target") {
-				req.Target = &target
+				TaskRef: args[1],
+				Type:    &args[0],
+				Target:  &args[2],
 			}
 
 			if err := manager.Remove(cmd.Context(), req); err != nil {
@@ -208,13 +209,10 @@ func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
 				})
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\tremoved\n", args[1])
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\tremoved\n", args[0], args[1], args[2])
 			return err
 		},
 	}
-
-	cmd.Flags().StringVar(&linkType, "type", "", "Constrain removal to a specific link type")
-	cmd.Flags().StringVar(&target, "target", "", "Constrain removal to a specific link target")
 	return cmd
 }
 

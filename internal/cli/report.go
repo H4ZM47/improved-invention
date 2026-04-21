@@ -17,13 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newReportCommand(opts *GlobalOptions) *cobra.Command {
-	cmd := newGroupCommand("report", "Serve read-only reports")
-	cmd.AddCommand(newReportServeCommand(opts))
-	return cmd
-}
-
-func newReportServeCommand(opts *GlobalOptions) *cobra.Command {
+func newServeCommand(opts *GlobalOptions) *cobra.Command {
 	var addr string
 
 	cmd := &cobra.Command{
@@ -83,7 +77,7 @@ func newReportServeCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				if err := writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind report serve",
+					"command": "grind serve",
 					"data": map[string]any{
 						"url":  url,
 						"addr": listener.Addr().String(),

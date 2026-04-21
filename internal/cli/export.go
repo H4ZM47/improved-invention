@@ -114,7 +114,12 @@ func buildExportBundle(ctx context.Context, db *sql.DB) (export.Bundle, error) {
 		if err != nil {
 			return export.Bundle{}, fmt.Errorf("list links for task %s: %w", task.Handle, err)
 		}
-		links = append(links, taskLinks...)
+		for _, link := range taskLinks {
+			if link.TargetKind != "external" {
+				continue
+			}
+			links = append(links, link)
+		}
 
 		taskRels, err := relMgr.List(ctx, app.ListRelationshipsRequest{TaskRef: task.Handle})
 		if err != nil {

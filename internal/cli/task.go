@@ -20,6 +20,7 @@ import (
 
 func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 	var description string
+	var descriptionFile string
 	var tags string
 	var domain string
 	var project string
@@ -38,9 +39,23 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			}
 			defer db.Close()
 
+			resolvedDescription, err := resolveDescriptionInput(
+				cmd,
+				opts,
+				description,
+				descriptionFile,
+				descriptionPromptConfig{
+					Enabled: true,
+					Title:   args[0],
+				},
+			)
+			if err != nil {
+				return err
+			}
+
 			task, err := manager.Create(cmd.Context(), app.CreateTaskRequest{
 				Title:        args[0],
-				Description:  description,
+				Description:  resolvedDescription,
 				Tags:         splitCSV(tags),
 				DomainRef:    optionalString(cmd, "domain", domain),
 				ProjectRef:   optionalString(cmd, "project", project),
@@ -71,6 +86,7 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
+	cmd.Flags().StringVar(&descriptionFile, "description-file", "", "Read the task description from a file path")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
 	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
 	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
@@ -241,6 +257,7 @@ func newTaskShowCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	var title string
 	var description string
+	var descriptionFile string
 	var tags string
 	var domain string
 	var project string
@@ -273,12 +290,23 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 				return fmt.Errorf("grind update allows only one of --milestone or --clear-milestone")
 			}
 
+			resolvedDescription, err := resolveDescriptionInput(
+				cmd,
+				opts,
+				description,
+				descriptionFile,
+				descriptionPromptConfig{},
+			)
+			if err != nil {
+				return err
+			}
+
 			req := app.UpdateTaskRequest{Reference: args[0]}
 			if cmd.Flags().Changed("title") {
 				req.Title = &title
 			}
-			if cmd.Flags().Changed("description") {
-				req.Description = &description
+			if cmd.Flags().Changed("description") || cmd.Flags().Changed("description-file") {
+				req.Description = &resolvedDescription
 			}
 			if cmd.Flags().Changed("tags") {
 				values := splitCSV(tags)
@@ -349,6 +377,7 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 
 	cmd.Flags().StringVar(&title, "title", "", "Set the task title")
 	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
+	cmd.Flags().StringVar(&descriptionFile, "description-file", "", "Read the task description from a file path")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
 	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
 	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
@@ -363,9 +392,29 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	return cmd
 }
 
-func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
+func newClaimCommand(opts *GlobalOptions) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "claim",
+		Short: "Manage task claims",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 {
+				return fmt.Errorf("`grind claim %s` was removed; use `grind claim acquire %s`", args[0], args[0])
+			}
+			return cmd.Help()
+		},
+	}
+	cmd.AddCommand(
+		newClaimAcquireCommand(opts),
+		newClaimRenewCommand(opts),
+		newClaimReleaseCommand(opts),
+		newClaimUnlockCommand(opts),
+	)
+	return cmd
+}
+
+func newClaimAcquireCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
-		Use:   "claim <task-ref>",
+		Use:   "acquire <task-ref>",
 		Short: "Claim a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -386,7 +435,7 @@ func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind claim",
+					"command": "grind claim acquire",
 					"data": map[string]any{
 						"claim": claim,
 					},
@@ -400,7 +449,7 @@ func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 	}
 }
 
-func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
+func newClaimRenewCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "renew <task-ref>",
 		Short: "Renew an active task claim",
@@ -423,7 +472,7 @@ func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind renew",
+					"command": "grind claim renew",
 					"data": map[string]any{
 						"claim": claim,
 					},
@@ -437,115 +486,7 @@ func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
 	}
 }
 
-func newTaskStartCommand(opts *GlobalOptions) *cobra.Command {
-	return &cobra.Command{
-		Use:   "start <task-ref>",
-		Short: "Start task time tracking",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
-			if err != nil {
-				return err
-			}
-			defer db.Close()
-
-			session, err := manager.StartSession(cmd.Context(), app.StartTaskSessionRequest{
-				Reference: args[0],
-			})
-			if err != nil {
-				return err
-			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind start",
-					"data": map[string]any{
-						"session": session,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "task=%s\tstate=%s\telapsed_seconds=%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
-			return err
-		},
-	}
-}
-
-func newTaskPauseCommand(opts *GlobalOptions) *cobra.Command {
-	return &cobra.Command{
-		Use:   "pause <task-ref>",
-		Short: "Pause task time tracking",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
-			if err != nil {
-				return err
-			}
-			defer db.Close()
-
-			session, err := manager.PauseSession(cmd.Context(), app.PauseTaskSessionRequest{
-				Reference: args[0],
-			})
-			if err != nil {
-				return err
-			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind pause",
-					"data": map[string]any{
-						"session": session,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "task=%s\tstate=%s\telapsed_seconds=%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
-			return err
-		},
-	}
-}
-
-func newTaskResumeCommand(opts *GlobalOptions) *cobra.Command {
-	return &cobra.Command{
-		Use:   "resume <task-ref>",
-		Short: "Resume task time tracking",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
-			if err != nil {
-				return err
-			}
-			defer db.Close()
-
-			session, err := manager.ResumeSession(cmd.Context(), app.ResumeTaskSessionRequest{
-				Reference: args[0],
-			})
-			if err != nil {
-				return err
-			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind resume",
-					"data": map[string]any{
-						"session": session,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "task=%s\tstate=%s\telapsed_seconds=%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
-			return err
-		},
-	}
-}
-
-func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
+func newClaimReleaseCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "release <task-ref>",
 		Short: "Release an active task claim",
@@ -564,7 +505,7 @@ func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind release",
+					"command": "grind claim release",
 					"data":    map[string]any{},
 					"meta":    map[string]any{},
 				})
@@ -576,7 +517,7 @@ func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
 	}
 }
 
-func newTaskUnlockCommand(opts *GlobalOptions) *cobra.Command {
+func newClaimUnlockCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "unlock <task-ref>",
 		Short: "Manually unlock a task",
@@ -595,7 +536,7 @@ func newTaskUnlockCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind unlock",
+					"command": "grind claim unlock",
 					"data":    map[string]any{},
 					"meta":    map[string]any{},
 				})
@@ -607,16 +548,28 @@ func newTaskUnlockCommand(opts *GlobalOptions) *cobra.Command {
 	}
 }
 
+func newTaskOpenCommand(opts *GlobalOptions) *cobra.Command {
+	return newTaskStatusCommand(opts, "open", "Reopen a task", "backlog")
+}
+
 func newTaskCloseCommand(opts *GlobalOptions) *cobra.Command {
-	var status string
+	return newTaskStatusCommand(opts, "close", "Close a task", "completed")
+}
+
+func newTaskCancelCommand(opts *GlobalOptions) *cobra.Command {
+	return newTaskStatusCommand(opts, "cancel", "Cancel a task", "cancelled")
+}
+
+func newTaskStatusCommand(opts *GlobalOptions, use, short, statusValue string) *cobra.Command {
+	var retiredStatus string
 
 	cmd := &cobra.Command{
-		Use:   "close <task-ref>",
-		Short: "Close or reopen a task",
+		Use:   use + " <task-ref>",
+		Short: short,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if status == "" {
-				status = "completed"
+			if cmd.Flags().Changed("status") {
+				return taskLifecycleMigrationError(use, args[0], retiredStatus)
 			}
 
 			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
@@ -627,7 +580,7 @@ func newTaskCloseCommand(opts *GlobalOptions) *cobra.Command {
 
 			task, err := manager.Update(cmd.Context(), app.UpdateTaskRequest{
 				Reference: args[0],
-				Status:    &status,
+				Status:    &statusValue,
 			})
 			if err != nil {
 				return err
@@ -636,7 +589,7 @@ func newTaskCloseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind close",
+					"command": "grind " + use,
 					"data": map[string]any{
 						"task": task,
 					},
@@ -649,8 +602,25 @@ func newTaskCloseCommand(opts *GlobalOptions) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&status, "status", "", "Set the terminal or reopened task status")
+	cmd.Flags().StringVar(&retiredStatus, "status", "", "Retired task lifecycle flag; use the explicit open, close, or cancel verbs")
+	_ = cmd.Flags().MarkHidden("status")
 	return cmd
+}
+
+func taskLifecycleMigrationError(use, handle, status string) error {
+	switch status {
+	case "backlog":
+		return fmt.Errorf("`grind close %s --status backlog` was removed; use `grind open %s`", handle, handle)
+	case "completed":
+		if use != "close" {
+			return fmt.Errorf("`grind close %s --status completed` was removed; use `grind close %s`", handle, handle)
+		}
+		return fmt.Errorf("`grind %s %s --status completed` was removed; use `grind close %s`", use, handle, handle)
+	case "cancelled":
+		return fmt.Errorf("`grind close %s --status cancelled` was removed; use `grind cancel %s`", handle, handle)
+	default:
+		return fmt.Errorf("the `--status` flag was removed from `grind %s`; use `grind open`, `grind close`, or `grind cancel`", use)
+	}
 }
 
 func taskManagerFromOptions(ctx context.Context, opts *GlobalOptions) (taskconfig.Resolved, *sql.DB, app.TaskManager, error) {
@@ -731,6 +701,93 @@ func promptAssigneeDecision(out io.Writer, in io.Reader, decision app.Assignment
 	default:
 		return nil, false, fmt.Errorf("invalid assignee decision %q", strings.TrimSpace(choice))
 	}
+}
+
+type descriptionPromptConfig struct {
+	Enabled bool
+	Title   string
+}
+
+func resolveDescriptionInput(cmd *cobra.Command, opts *GlobalOptions, literal string, filePath string, prompt descriptionPromptConfig) (string, error) {
+	descriptionFlagChanged := cmd.Flags().Changed("description")
+	descriptionFileChanged := cmd.Flags().Changed("description-file")
+
+	switch {
+	case descriptionFlagChanged && descriptionFileChanged:
+		return "", fmt.Errorf("use only one of --description or --description-file")
+	case descriptionFileChanged:
+		return readDescriptionFile(filePath)
+	case descriptionFlagChanged:
+		return literal, nil
+	case prompt.Enabled && shouldPromptForDescription(cmd, opts):
+		return promptTaskDescription(cmd.ErrOrStderr(), cmd.InOrStdin(), prompt.Title)
+	default:
+		return literal, nil
+	}
+}
+
+func readDescriptionFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read --description-file %s: %w", path, err)
+	}
+	return string(data), nil
+}
+
+func shouldPromptForDescription(cmd *cobra.Command, opts *GlobalOptions) bool {
+	if opts.NoInput {
+		return false
+	}
+
+	inputFile, ok := cmd.InOrStdin().(*os.File)
+	if !ok {
+		return false
+	}
+	outputFile, ok := cmd.ErrOrStderr().(*os.File)
+	if !ok {
+		return false
+	}
+
+	inputInfo, err := inputFile.Stat()
+	if err != nil || (inputInfo.Mode()&os.ModeCharDevice) == 0 {
+		return false
+	}
+	outputInfo, err := outputFile.Stat()
+	if err != nil || (outputInfo.Mode()&os.ModeCharDevice) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func promptTaskDescription(out io.Writer, in io.Reader, title string) (string, error) {
+	if _, err := fmt.Fprintf(out, "Add a description for %q? Press Enter to skip.\nDescription (finish with an empty line):\n", title); err != nil {
+		return "", err
+	}
+
+	reader := bufio.NewReader(in)
+	lines := make([]string, 0, 4)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				trimmed := strings.TrimRight(line, "\r\n")
+				if trimmed != "" {
+					lines = append(lines, trimmed)
+				}
+				break
+			}
+			return "", err
+		}
+
+		trimmed := strings.TrimRight(line, "\r\n")
+		if trimmed == "" {
+			break
+		}
+		lines = append(lines, trimmed)
+	}
+
+	return strings.Join(lines, "\n"), nil
 }
 
 func validateTaskListStatuses(statuses []string) error {

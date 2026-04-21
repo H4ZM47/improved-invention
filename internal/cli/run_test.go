@@ -109,6 +109,60 @@ func TestRunRetiredConfigCommandJSONReturnsGuidance(t *testing.T) {
 	}
 }
 
+func TestRunRetiredClaimCommandReturnsGuidance(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"claim", "TASK-1"}, &stdout, &stderr)
+	if got, want := exitCode, 10; got != want {
+		t.Fatalf("exitCode = %d, want %d", got, want)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if got := stderr.String(); !containsAll(got, []string{"grind claim TASK-1", "grind claim acquire TASK-1"}) {
+		t.Fatalf("stderr = %q, want migration guidance", got)
+	}
+}
+
+func TestRunRetiredStartCommandJSONReturnsGuidance(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--json", "start", "TASK-1"}, &stdout, &stderr)
+	if got, want := exitCode, 10; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_ARGS"`, "`grind start TASK-1` was removed", "`grind time start TASK-1`"}) {
+		t.Fatalf("stdout = %q, want migration guidance", got)
+	}
+}
+
+func TestRunRetiredReportServeReturnsGuidance(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"report", "serve"}, &stdout, &stderr)
+	if got, want := exitCode, 10; got != want {
+		t.Fatalf("exitCode = %d, want %d", got, want)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if got := stderr.String(); !containsAll(got, []string{"grind report serve", "grind serve"}) {
+		t.Fatalf("stderr = %q, want migration guidance", got)
+	}
+}
+
 func TestRunAgentInstructionsJSON(t *testing.T) {
 	t.Parallel()
 
@@ -247,14 +301,14 @@ func TestRunRelationshipAddInvalidTypeUsesDescriptiveMessage(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "relationship", "add", "bogus", leftTask, rightTask}, &stdout, &stderr)
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "link", "add", "bogus", leftTask, rightTask}, &stdout, &stderr)
 	if got, want := exitCode, 41; got != want {
 		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("stderr = %q, want empty", stderr.String())
 	}
-	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_RELATIONSHIP"`, `unsupported relationship type`, `parent`, `blocks`}) {
+	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_RELATIONSHIP"`, `unsupported link type`, `parent`, `blocks`}) {
 		t.Fatalf("stdout = %q, want descriptive invalid relationship message", got)
 	}
 }

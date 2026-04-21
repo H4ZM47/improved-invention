@@ -11,12 +11,14 @@ import (
 )
 
 const (
-	LinkTypeFile     = "file"
-	LinkTypeURL      = "url"
-	LinkTypeRepo     = "repo"
-	LinkTypeWorktree = "worktree"
-	LinkTypeObsidian = "obsidian"
-	LinkTypeOther    = "other"
+	LinkTypeFile       = "file"
+	LinkTypeURL        = "url"
+	LinkTypeRepo       = "repo"
+	LinkTypeWorktree   = "worktree"
+	LinkTypeObsidian   = "obsidian"
+	LinkTypeOther      = "other"
+	LinkTargetTask     = "task"
+	LinkTargetExternal = "external"
 )
 
 var (
@@ -82,9 +84,9 @@ func CreateExternalLink(ctx context.Context, db *sql.DB, input TaskExternalLinkC
 	}
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO external_links(uuid, task_id, link_type, target, label, metadata_json)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, uuid.NewString(), task.ID, input.LinkType, input.Target, input.Label, metadataJSON)
+		INSERT INTO links(uuid, source_task_id, link_type, target_kind, target_value, label, metadata_json)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, uuid.NewString(), task.ID, input.LinkType, LinkTargetExternal, input.Target, input.Label, metadataJSON)
 	if err != nil {
 		return ExternalLink{}, fmt.Errorf("insert external link: %w", err)
 	}
@@ -130,9 +132,9 @@ func ListExternalLinksForTask(ctx context.Context, db *sql.DB, taskReference str
 	}
 
 	rows, err := db.QueryContext(ctx, externalLinkSelectQuery+`
-		WHERE l.task_id = ?
+		WHERE l.source_task_id = ? AND l.target_kind = ?
 		ORDER BY l.created_at DESC, l.id DESC
-	`, task.ID)
+	`, task.ID, LinkTargetExternal)
 	if err != nil {
 		return nil, fmt.Errorf("list external links: %w", err)
 	}
@@ -169,13 +171,13 @@ func RemoveExternalLink(ctx context.Context, db *sql.DB, input TaskExternalLinkR
 	}
 
 	link, err := queryExternalLink(ctx, tx, externalLinkSelectQuery+`
-		WHERE l.task_id = ? AND l.uuid = ?
-	`, task.ID, input.LinkUUID)
+		WHERE l.source_task_id = ? AND l.target_kind = ? AND l.uuid = ?
+	`, task.ID, LinkTargetExternal, input.LinkUUID)
 	if err != nil {
 		return ExternalLink{}, err
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM external_links WHERE id = ?`, link.ID); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM links WHERE id = ?`, link.ID); err != nil {
 		return ExternalLink{}, fmt.Errorf("delete external link: %w", err)
 	}
 
@@ -203,9 +205,9 @@ func RemoveExternalLink(ctx context.Context, db *sql.DB, input TaskExternalLinkR
 }
 
 const externalLinkSelectQuery = `
-	SELECT l.id, l.uuid, t.uuid, t.handle, l.link_type, l.target, l.label, l.metadata_json, l.created_at
-	FROM external_links l
-	INNER JOIN tasks t ON t.id = l.task_id
+	SELECT l.id, l.uuid, t.uuid, t.handle, l.link_type, l.target_value, l.label, l.metadata_json, l.created_at
+	FROM links l
+	INNER JOIN tasks t ON t.id = l.source_task_id
 `
 
 type externalLinkRowScanner interface {

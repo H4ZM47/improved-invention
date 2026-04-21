@@ -75,9 +75,9 @@ func CreateRelationship(ctx context.Context, db *sql.DB, input RelationshipCreat
 	}
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO relationships(uuid, source_task_id, target_task_id, relationship_type)
-		VALUES (?, ?, ?, ?)
-	`, uuid.NewString(), source.ID, target.ID, input.RelationshipType)
+		INSERT INTO links(uuid, source_task_id, link_type, target_kind, target_task_id, metadata_json)
+		VALUES (?, ?, ?, ?, ?, '{}')
+	`, uuid.NewString(), source.ID, input.RelationshipType, LinkTargetTask, target.ID)
 	if err != nil {
 		return Relationship{}, fmt.Errorf("insert relationship: %w", err)
 	}
@@ -122,9 +122,9 @@ func ListRelationshipsForTask(ctx context.Context, db *sql.DB, taskReference str
 	}
 
 	rows, err := db.QueryContext(ctx, relationshipSelectQuery+`
-		WHERE r.source_task_id = ? OR r.target_task_id = ?
+		WHERE r.target_kind = ? AND (r.source_task_id = ? OR r.target_task_id = ?)
 		ORDER BY r.created_at DESC, r.id DESC
-	`, task.ID, task.ID)
+	`, LinkTargetTask, task.ID, task.ID)
 	if err != nil {
 		return nil, fmt.Errorf("list relationships: %w", err)
 	}
@@ -169,13 +169,13 @@ func RemoveRelationship(ctx context.Context, db *sql.DB, input RelationshipRemov
 	}
 
 	relationship, err := queryRelationship(ctx, tx, relationshipSelectQuery+`
-		WHERE r.source_task_id = ? AND r.target_task_id = ? AND r.relationship_type = ?
-	`, source.ID, target.ID, input.RelationshipType)
+		WHERE r.target_kind = ? AND r.source_task_id = ? AND r.target_task_id = ? AND r.link_type = ?
+	`, LinkTargetTask, source.ID, target.ID, input.RelationshipType)
 	if err != nil {
 		return Relationship{}, err
 	}
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM relationships WHERE id = ?`, relationship.ID); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM links WHERE id = ?`, relationship.ID); err != nil {
 		return Relationship{}, fmt.Errorf("delete relationship: %w", err)
 	}
 
@@ -202,8 +202,8 @@ func RemoveRelationship(ctx context.Context, db *sql.DB, input RelationshipRemov
 }
 
 const relationshipSelectQuery = `
-	SELECT r.id, r.uuid, source.uuid, source.handle, target.uuid, target.handle, r.relationship_type, r.created_at
-	FROM relationships r
+	SELECT r.id, r.uuid, source.uuid, source.handle, target.uuid, target.handle, r.link_type, r.created_at
+	FROM links r
 	INNER JOIN tasks source ON source.id = r.source_task_id
 	INNER JOIN tasks target ON target.id = r.target_task_id
 `

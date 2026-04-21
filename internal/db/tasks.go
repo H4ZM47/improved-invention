@@ -228,11 +228,11 @@ func buildTaskListQuery(query TaskListQuery) (string, []any) {
 
 	repoContextClauses := make([]string, 0, 2)
 	if ref := trimmedPointer(query.RepoTarget); ref != nil {
-		repoContextClauses = append(repoContextClauses, "EXISTS (SELECT 1 FROM external_links el WHERE el.task_id = t.id AND el.link_type = 'repo' AND el.target = ?)")
+		repoContextClauses = append(repoContextClauses, "EXISTS (SELECT 1 FROM links l WHERE l.source_task_id = t.id AND l.target_kind = 'external' AND l.link_type = 'repo' AND l.target_value = ?)")
 		args = append(args, *ref)
 	}
 	if ref := trimmedPointer(query.WorktreeTarget); ref != nil {
-		repoContextClauses = append(repoContextClauses, "EXISTS (SELECT 1 FROM external_links el WHERE el.task_id = t.id AND el.link_type = 'worktree' AND el.target = ?)")
+		repoContextClauses = append(repoContextClauses, "EXISTS (SELECT 1 FROM links l WHERE l.source_task_id = t.id AND l.target_kind = 'external' AND l.link_type = 'worktree' AND l.target_value = ?)")
 		args = append(args, *ref)
 	}
 	if len(repoContextClauses) > 0 {
