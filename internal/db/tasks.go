@@ -57,14 +57,16 @@ type TaskUpdateInput struct {
 
 // TaskListQuery describes the supported task-list filters in v1.
 type TaskListQuery struct {
-	Statuses    []string
-	DomainRef   *string
-	ProjectRef  *string
-	AssigneeRef *string
-	DueBefore   *string
-	DueAfter    *string
-	Tags        []string
-	Search      string
+	Statuses       []string
+	DomainRef      *string
+	ProjectRef     *string
+	AssigneeRef    *string
+	DueBefore      *string
+	DueAfter       *string
+	Tags           []string
+	Search         string
+	RepoTarget     *string
+	WorktreeTarget *string
 }
 
 // CreateTask inserts a new backlog task and its corresponding event.
@@ -208,6 +210,19 @@ func buildTaskListQuery(query TaskListQuery) (string, []any) {
 		pattern := "%" + strings.ToLower(search) + "%"
 		where = append(where, "(LOWER(t.title) LIKE ? OR LOWER(t.description) LIKE ?)")
 		args = append(args, pattern, pattern)
+	}
+
+	repoContextClauses := make([]string, 0, 2)
+	if ref := trimmedPointer(query.RepoTarget); ref != nil {
+		repoContextClauses = append(repoContextClauses, "EXISTS (SELECT 1 FROM external_links el WHERE el.task_id = t.id AND el.link_type = 'repo' AND el.target = ?)")
+		args = append(args, *ref)
+	}
+	if ref := trimmedPointer(query.WorktreeTarget); ref != nil {
+		repoContextClauses = append(repoContextClauses, "EXISTS (SELECT 1 FROM external_links el WHERE el.task_id = t.id AND el.link_type = 'worktree' AND el.target = ?)")
+		args = append(args, *ref)
+	}
+	if len(repoContextClauses) > 0 {
+		where = append(where, "("+strings.Join(repoContextClauses, " OR ")+")")
 	}
 
 	if len(where) > 0 {

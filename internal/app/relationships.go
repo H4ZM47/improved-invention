@@ -110,6 +110,62 @@ func (m LinkManager) Create(ctx context.Context, req CreateLinkRequest) (LinkRec
 	return toLinkRecord(link), nil
 }
 
+// AttachCurrentRepoContext explicitly links the current repo/worktree context to a task.
+func (m LinkManager) AttachCurrentRepoContext(ctx context.Context, req AttachCurrentRepoContextRequest) (AttachCurrentRepoContextResult, error) {
+	existing, err := m.List(ctx, ListLinksRequest{TaskRef: req.TaskRef})
+	if err != nil {
+		return AttachCurrentRepoContextResult{}, err
+	}
+
+	result := AttachCurrentRepoContextResult{}
+	if req.LinkRepo {
+		repoTarget := req.Context.RepoTarget()
+		if link, ok := findMatchingLink(existing, taskdb.LinkTypeRepo, repoTarget); ok {
+			linkCopy := link
+			result.RepoLink = &linkCopy
+		} else {
+			link, err := m.Create(ctx, CreateLinkRequest{
+				TaskRef: req.TaskRef,
+				Type:    taskdb.LinkTypeRepo,
+				Target:  repoTarget,
+				Label:   "Current repository",
+				Metadata: map[string]string{
+					"repo_root":  req.Context.RepoRoot,
+					"git_dir":    req.Context.GitDir,
+					"remote_url": req.Context.RemoteURL,
+				},
+			})
+			if err != nil {
+				return AttachCurrentRepoContextResult{}, err
+			}
+			result.RepoLink = &link
+		}
+	}
+
+	worktreeTarget := req.Context.WorktreeTarget()
+	if link, ok := findMatchingLink(existing, taskdb.LinkTypeWorktree, worktreeTarget); ok {
+		result.WorktreeLink = link
+	} else {
+		link, err := m.Create(ctx, CreateLinkRequest{
+			TaskRef: req.TaskRef,
+			Type:    taskdb.LinkTypeWorktree,
+			Target:  worktreeTarget,
+			Label:   "Current worktree",
+			Metadata: map[string]string{
+				"repo_root":  req.Context.RepoRoot,
+				"git_dir":    req.Context.GitDir,
+				"remote_url": req.Context.RemoteURL,
+			},
+		})
+		if err != nil {
+			return AttachCurrentRepoContextResult{}, err
+		}
+		result.WorktreeLink = link
+	}
+
+	return result, nil
+}
+
 // List lists task-scoped external links.
 func (m LinkManager) List(ctx context.Context, req ListLinksRequest) ([]LinkRecord, error) {
 	links, err := taskdb.ListExternalLinksForTask(ctx, m.DB, req.TaskRef)
@@ -175,6 +231,15 @@ func toLinkRecord(link taskdb.ExternalLink) LinkRecord {
 		Metadata:  metadata,
 		CreatedAt: link.CreatedAt,
 	}
+}
+
+func findMatchingLink(links []LinkRecord, linkType string, target string) (LinkRecord, bool) {
+	for _, link := range links {
+		if link.Type == linkType && link.Target == target {
+			return link, true
+		}
+	}
+	return LinkRecord{}, false
 }
 
 func normalizeRelationship(rawType string, sourceTaskRef string, targetTaskRef string) (normalizedType string, normalizedSource string, normalizedTarget string, err error) {

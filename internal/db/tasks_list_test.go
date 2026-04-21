@@ -85,6 +85,37 @@ func TestListTasksSupportsFieldTagAndSearchFilters(t *testing.T) {
 	}
 }
 
+func TestListTasksSupportsRepoAndWorktreeContextFilters(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	attachedID := insertTask(t, db, "task-1", "TASK-1", "Attached task", nil, nil)
+	insertTask(t, db, "task-2", "TASK-2", "Unattached task", nil, nil)
+
+	if _, err := db.Exec(`
+		INSERT INTO external_links(uuid, task_id, link_type, target, label)
+		VALUES
+		  ('link-1', ?, 'repo', 'https://github.com/H4ZM47/improved-invention.git', 'repo'),
+		  ('link-2', ?, 'worktree', '/Users/alex/task', 'worktree')
+	`, attachedID, attachedID); err != nil {
+		t.Fatalf("seed external links failed: %v", err)
+	}
+
+	items, err := ListTasks(context.Background(), db, TaskListQuery{
+		RepoTarget:     stringPointer("https://github.com/H4ZM47/improved-invention.git"),
+		WorktreeTarget: stringPointer("/Users/alex/task"),
+	})
+	if err != nil {
+		t.Fatalf("ListTasks() error = %v", err)
+	}
+	if got, want := len(items), 1; got != want {
+		t.Fatalf("len(items) = %d, want %d", got, want)
+	}
+	if got, want := items[0].Handle, "TASK-1"; got != want {
+		t.Fatalf("items[0].Handle = %q, want %q", got, want)
+	}
+}
+
 type taskFixtureUpdate struct {
 	Description string
 	Status      string

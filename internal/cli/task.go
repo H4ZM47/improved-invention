@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/H4ZM47/improved-invention/internal/app"
 	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
 	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	"github.com/H4ZM47/improved-invention/internal/gitctx"
 	"github.com/spf13/cobra"
 )
 
@@ -84,6 +86,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 	var dueBefore string
 	var dueAfter string
 	var search string
+	var here bool
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -114,15 +117,34 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 				dueAfter = normalizedDueAfter
 			}
 
+			var repoTarget *string
+			var worktreeTarget *string
+			if here {
+				cwd, err := os.Getwd()
+				if err != nil {
+					return err
+				}
+				current, err := gitctx.Detect(cmd.Context(), cwd)
+				if err != nil {
+					return err
+				}
+				repoValue := current.RepoTarget()
+				worktreeValue := current.WorktreeTarget()
+				repoTarget = &repoValue
+				worktreeTarget = &worktreeValue
+			}
+
 			items, err := manager.List(cmd.Context(), app.ListTasksRequest{
-				Statuses:    statuses,
-				DomainRef:   optionalString(cmd, "domain", domain),
-				ProjectRef:  optionalString(cmd, "project", project),
-				AssigneeRef: optionalString(cmd, "assignee", assignee),
-				DueBefore:   optionalString(cmd, "due-before", dueBefore),
-				DueAfter:    optionalString(cmd, "due-after", dueAfter),
-				Tags:        tags,
-				Search:      search,
+				Statuses:       statuses,
+				DomainRef:      optionalString(cmd, "domain", domain),
+				ProjectRef:     optionalString(cmd, "project", project),
+				AssigneeRef:    optionalString(cmd, "assignee", assignee),
+				DueBefore:      optionalString(cmd, "due-before", dueBefore),
+				DueAfter:       optionalString(cmd, "due-after", dueAfter),
+				Tags:           tags,
+				Search:         search,
+				RepoTarget:     repoTarget,
+				WorktreeTarget: worktreeTarget,
 			})
 			if err != nil {
 				return err
@@ -130,6 +152,9 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 
 			if opts.JSON {
 				filters := taskListFiltersMeta(statuses, tags, domain, project, assignee, dueBefore, dueAfter, search)
+				if here {
+					filters["here"] = true
+				}
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
 					"command": "task list",
@@ -160,6 +185,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
 	cmd.Flags().StringVar(&dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
 	cmd.Flags().StringVar(&search, "search", "", "Filter by case-insensitive search across title and description")
+	cmd.Flags().BoolVar(&here, "here", false, "Filter to tasks linked to the current repo or worktree context")
 
 	return cmd
 }
