@@ -26,7 +26,7 @@ func TestReportServeCommandBootstrapsServer(t *testing.T) {
 
 	root := NewRootCommand(BuildInfo{})
 	root.SetContext(ctx)
-	root.SetArgs([]string{"--db", dbPath, "report", "serve", "--addr", addr})
+	root.SetArgs([]string{"--db", dbPath, "serve", "--addr", addr})
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	root.SetOut(&stdout)
@@ -48,7 +48,7 @@ func TestReportServeCommandBootstrapsServer(t *testing.T) {
 			t.Fatalf("Execute() error = %v; stdout=%q stderr=%q", err, stdout.String(), stderr.String())
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("report serve command did not exit after context cancellation")
+		t.Fatal("serve command did not exit after context cancellation")
 	}
 
 	if !strings.Contains(stdout.String(), "Serving read-only report at http://"+addr) {

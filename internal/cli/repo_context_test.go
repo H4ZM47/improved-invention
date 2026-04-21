@@ -34,11 +34,11 @@ func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.
 			"--db", dbPath,
 			"--actor", "alex",
 			"--json",
-			"link", "attach-current-repo", taskHandle,
+			"link-repo", taskHandle,
 		})
 
 		if err := root.Execute(); err != nil {
-			t.Fatalf("grind link attach-current-repo Execute() error = %v; stderr=%q", err, stderr.String())
+			t.Fatalf("grind link-repo Execute() error = %v; stderr=%q", err, stderr.String())
 		}
 	})
 
@@ -70,7 +70,7 @@ func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "grind link attach-current-repo"; got != want {
+	if got, want := payload.Command, "grind link-repo"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if payload.Data.RepoLink == nil {
@@ -358,8 +358,8 @@ func countExternalLinks(t *testing.T, dbPath string) int {
 	defer db.Close()
 
 	var count int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM external_links`).Scan(&count); err != nil {
-		t.Fatalf("count external_links failed: %v", err)
+	if err := db.QueryRow(`SELECT COUNT(*) FROM links WHERE target_kind = 'external'`).Scan(&count); err != nil {
+		t.Fatalf("count external links failed: %v", err)
 	}
 	return count
 }

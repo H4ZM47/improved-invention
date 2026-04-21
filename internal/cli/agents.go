@@ -21,17 +21,17 @@ Baseline:
 Safe loop:
   1. grind --config --json --actor codex:agent-7
   2. grind list --status backlog --json --actor codex:agent-7
-  3. grind claim TASK-1 --json --no-input --actor codex:agent-7
+  3. grind claim acquire TASK-1 --json --no-input --actor codex:agent-7
   4. grind update TASK-1 --status active --json --no-input --actor codex:agent-7
   5. grind show TASK-1 --json --actor codex:agent-7
-  6. grind close TASK-1 --status completed --json --no-input --actor codex:agent-7
-  7. grind release TASK-1 --json --no-input --actor codex:agent-7
+  6. grind close TASK-1 --json --no-input --actor codex:agent-7
+  7. grind claim release TASK-1 --json --no-input --actor codex:agent-7
 
 Useful commands:
 - grind list --here --json --actor codex:agent-7
-- grind link attach-current-repo TASK-1 --json --no-input --actor codex:agent-7
+- grind link-repo TASK-1 --json --no-input --actor codex:agent-7
 - grind time add TASK-1 --started-at 2026-04-21T10:00:00Z --duration 30m --json --no-input --actor codex:agent-7
-- grind relationship add blocks TASK-1 TASK-2 --json --no-input --actor codex:agent-7
+- grind link add blocks TASK-1 TASK-2 --json --no-input --actor codex:agent-7
 
 Reclassification safety:
 - when changing --domain or --project in non-interactive mode, also choose one of:

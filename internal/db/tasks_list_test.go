@@ -95,12 +95,12 @@ func TestListTasksSupportsRepoAndWorktreeContextFilters(t *testing.T) {
 	insertTask(t, db, "task-2", "TASK-2", "Unattached task", nil, nil)
 
 	if _, err := db.Exec(`
-		INSERT INTO external_links(uuid, task_id, link_type, target, label)
+		INSERT INTO links(uuid, source_task_id, link_type, target_kind, target_value, label)
 		VALUES
-		  ('link-1', ?, 'repo', 'https://github.com/H4ZM47/grind.git', 'repo'),
-		  ('link-2', ?, 'worktree', '/Users/alex/task', 'worktree')
+		  ('link-1', ?, 'repo', 'external', 'https://github.com/H4ZM47/grind.git', 'repo'),
+		  ('link-2', ?, 'worktree', 'external', '/Users/alex/task', 'worktree')
 	`, attachedID, attachedID); err != nil {
-		t.Fatalf("seed external links failed: %v", err)
+		t.Fatalf("seed links failed: %v", err)
 	}
 
 	items, err := ListTasks(context.Background(), db, TaskListQuery{

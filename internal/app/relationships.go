@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"sort"
 	"strings"
 
 	taskdb "github.com/H4ZM47/grind/internal/db"
@@ -85,6 +87,25 @@ func (m RelationshipManager) Remove(ctx context.Context, req RemoveRelationshipR
 
 // Create stores a task-scoped external link.
 func (m LinkManager) Create(ctx context.Context, req CreateLinkRequest) (LinkRecord, error) {
+	if normalizedType, sourceRef, targetRef, ok := tryNormalizeRelationship(req.Type, req.TaskRef, req.Target); ok {
+		actorID, err := m.currentActorID(ctx)
+		if err != nil {
+			return LinkRecord{}, err
+		}
+
+		relationship, err := taskdb.CreateRelationship(ctx, m.DB, taskdb.RelationshipCreateInput{
+			RelationshipType:    normalizedType,
+			SourceTaskReference: sourceRef,
+			TargetTaskReference: targetRef,
+			ActorID:             actorID,
+		})
+		if err != nil {
+			return LinkRecord{}, err
+		}
+
+		return toRelationshipLinkRecord(relationship), nil
+	}
+
 	actorID, err := m.currentActorID(ctx)
 	if err != nil {
 		return LinkRecord{}, err
@@ -107,7 +128,7 @@ func (m LinkManager) Create(ctx context.Context, req CreateLinkRequest) (LinkRec
 		return LinkRecord{}, err
 	}
 
-	return toLinkRecord(link), nil
+	return toExternalLinkRecord(link), nil
 }
 
 // AttachCurrentRepoContext explicitly links the current repo/worktree context to a task.
@@ -168,32 +189,75 @@ func (m LinkManager) AttachCurrentRepoContext(ctx context.Context, req AttachCur
 
 // List lists task-scoped external links.
 func (m LinkManager) List(ctx context.Context, req ListLinksRequest) ([]LinkRecord, error) {
+	relationships, err := taskdb.ListRelationshipsForTask(ctx, m.DB, req.TaskRef)
+	if err != nil {
+		return nil, err
+	}
+
 	links, err := taskdb.ListExternalLinksForTask(ctx, m.DB, req.TaskRef)
 	if err != nil {
 		return nil, err
 	}
 
-	records := make([]LinkRecord, 0, len(links))
-	for _, link := range links {
-		records = append(records, toLinkRecord(link))
+	records := make([]LinkRecord, 0, len(relationships)+len(links))
+	for _, relationship := range relationships {
+		records = append(records, toRelationshipLinkRecord(relationship))
 	}
+	for _, link := range links {
+		records = append(records, toExternalLinkRecord(link))
+	}
+
+	sort.SliceStable(records, func(i, j int) bool {
+		if records[i].CreatedAt == records[j].CreatedAt {
+			return records[i].UUID > records[j].UUID
+		}
+		return records[i].CreatedAt > records[j].CreatedAt
+	})
 	return records, nil
 }
 
-// Remove removes a task-scoped external link by UUID or target descriptor.
+// Remove removes a task-scoped connection by typed target descriptor.
 func (m LinkManager) Remove(ctx context.Context, req RemoveLinkRequest) error {
 	actorID, err := m.currentActorID(ctx)
 	if err != nil {
 		return err
 	}
 
-	if req.LinkRef == "" {
+	if req.Type == nil || req.Target == nil {
+		return fmt.Errorf("grind link remove requires a type and target")
+	}
+
+	if normalizedType, sourceRef, targetRef, ok := tryNormalizeRelationship(*req.Type, req.TaskRef, *req.Target); ok {
+		_, err := taskdb.RemoveRelationship(ctx, m.DB, taskdb.RelationshipRemoveInput{
+			RelationshipType:    normalizedType,
+			SourceTaskReference: sourceRef,
+			TargetTaskReference: targetRef,
+			ActorID:             actorID,
+		})
+		return err
+	}
+
+	links, err := taskdb.ListExternalLinksForTask(ctx, m.DB, req.TaskRef)
+	if err != nil {
+		return err
+	}
+
+	linkUUID := req.LinkRef
+	if linkUUID == "" {
+		for _, link := range links {
+			if link.LinkType == *req.Type && link.Target == *req.Target {
+				linkUUID = link.UUID
+				break
+			}
+		}
+	}
+	if linkUUID == "" {
 		return sql.ErrNoRows
 	}
 
 	_, err = taskdb.RemoveExternalLink(ctx, m.DB, taskdb.TaskExternalLinkRemoveInput{
 		TaskReference: req.TaskRef,
-		LinkUUID:      req.LinkRef,
+		LinkUUID:      linkUUID,
 		ActorID:       actorID,
 	})
 	return err
@@ -217,29 +281,51 @@ func toRelationshipRecord(relationship taskdb.Relationship) RelationshipRecord {
 	}
 }
 
-func toLinkRecord(link taskdb.ExternalLink) LinkRecord {
+func toExternalLinkRecord(link taskdb.ExternalLink) LinkRecord {
 	metadata := map[string]string{}
 	if strings.TrimSpace(link.MetadataJSON) != "" {
 		_ = json.Unmarshal([]byte(link.MetadataJSON), &metadata)
 	}
 	return LinkRecord{
-		UUID:      link.UUID,
-		TaskID:    link.TaskHandle,
-		Type:      link.LinkType,
-		Target:    link.Target,
-		Label:     link.Label,
-		Metadata:  metadata,
-		CreatedAt: link.CreatedAt,
+		UUID:       link.UUID,
+		TaskID:     link.TaskHandle,
+		SourceTask: link.TaskHandle,
+		Type:       link.LinkType,
+		TargetKind: "external",
+		Target:     link.Target,
+		Label:      link.Label,
+		Metadata:   metadata,
+		CreatedAt:  link.CreatedAt,
 	}
 }
 
 func findMatchingLink(links []LinkRecord, linkType string, target string) (LinkRecord, bool) {
 	for _, link := range links {
-		if link.Type == linkType && link.Target == target {
+		if link.TargetKind == "external" && link.Type == linkType && link.Target == target {
 			return link, true
 		}
 	}
 	return LinkRecord{}, false
+}
+
+func toRelationshipLinkRecord(relationship taskdb.Relationship) LinkRecord {
+	return LinkRecord{
+		UUID:       relationship.UUID,
+		TaskID:     relationship.SourceTaskHandle,
+		SourceTask: relationship.SourceTaskHandle,
+		Type:       relationshipTypeForCLI(relationship.RelationshipType),
+		TargetKind: "task",
+		Target:     relationship.TargetTaskHandle,
+		CreatedAt:  relationship.CreatedAt,
+	}
+}
+
+func tryNormalizeRelationship(rawType string, sourceTaskRef string, targetTaskRef string) (string, string, string, bool) {
+	normalizedType, normalizedSource, normalizedTarget, err := normalizeRelationship(rawType, sourceTaskRef, targetTaskRef)
+	if err != nil {
+		return "", "", "", false
+	}
+	return normalizedType, normalizedSource, normalizedTarget, true
 }
 
 func normalizeRelationship(rawType string, sourceTaskRef string, targetTaskRef string) (normalizedType string, normalizedSource string, normalizedTarget string, err error) {

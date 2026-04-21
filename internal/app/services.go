@@ -223,13 +223,15 @@ type RelationshipRecord struct {
 }
 
 type LinkRecord struct {
-	UUID      string            `json:"uuid"`
-	TaskID    string            `json:"task_id"`
-	Type      string            `json:"type"`
-	Target    string            `json:"target"`
-	Label     string            `json:"label"`
-	Metadata  map[string]string `json:"metadata"`
-	CreatedAt string            `json:"created_at"`
+	UUID       string            `json:"uuid"`
+	TaskID     string            `json:"task_id"`
+	SourceTask string            `json:"source_task"`
+	Type       string            `json:"type"`
+	TargetKind string            `json:"target_kind"`
+	Target     string            `json:"target"`
+	Label      string            `json:"label"`
+	Metadata   map[string]string `json:"metadata"`
+	CreatedAt  string            `json:"created_at"`
 }
 
 type TaskSessionRecord struct {

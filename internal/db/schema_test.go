@@ -89,15 +89,15 @@ func TestSchemaEnforcesOneParentPerChild(t *testing.T) {
 	child := insertTask(t, db, "task-child", "TASK-3", "Child", nil, nil)
 
 	if _, err := db.Exec(`
-		INSERT INTO relationships(uuid, source_task_id, target_task_id, relationship_type)
-		VALUES ('rel-1', ?, ?, 'parent_child')
+		INSERT INTO links(uuid, source_task_id, link_type, target_kind, target_task_id)
+		VALUES ('rel-1', ?, 'parent_child', 'task', ?)
 	`, parentOne, child); err != nil {
 		t.Fatalf("first parent relationship insert failed: %v", err)
 	}
 
 	if _, err := db.Exec(`
-		INSERT INTO relationships(uuid, source_task_id, target_task_id, relationship_type)
-		VALUES ('rel-2', ?, ?, 'parent_child')
+		INSERT INTO links(uuid, source_task_id, link_type, target_kind, target_task_id)
+		VALUES ('rel-2', ?, 'parent_child', 'task', ?)
 	`, parentTwo, child); err == nil {
 		t.Fatal("second parent relationship insert succeeded, want unique failure")
 	}

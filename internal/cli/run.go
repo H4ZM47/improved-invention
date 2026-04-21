@@ -139,7 +139,7 @@ func classifyFailure(err error, commandName string) failureClass {
 		failure.Code, failure.ExitCode = "BACKUP_FAILED", 72
 	case strings.HasPrefix(commandName, "grind restore"):
 		failure.Code, failure.ExitCode = "RESTORE_FAILED", 73
-	case strings.HasPrefix(commandName, "grind report"):
+	case strings.HasPrefix(commandName, "grind serve"), strings.HasPrefix(commandName, "grind report"):
 		failure.Code, failure.ExitCode = "REPORT_SERVER_FAILED", 71
 	case strings.HasPrefix(commandName, "grind export"):
 		failure.Code, failure.ExitCode = "EXPORT_FAILED", 70
@@ -332,15 +332,17 @@ func normalizeInvalidRelationshipMessage(err error) string {
 		return "the requested relationship or link type is not supported"
 	}
 	msg := strings.TrimSpace(err.Error())
+	supportedTaskTypes := strings.Join(sortedKeys([]string{
+		"parent", "child", "blocks", "blocked_by", "related", "sibling", "duplicate", "supersedes",
+	}), ", ")
+	supportedResourceTypes := strings.Join(sortedKeys([]string{
+		taskdb.LinkTypeFile, taskdb.LinkTypeURL, taskdb.LinkTypeRepo, taskdb.LinkTypeWorktree, taskdb.LinkTypeObsidian, taskdb.LinkTypeOther,
+	}), ", ")
 	switch {
 	case errors.Is(err, taskdb.ErrInvalidRelationshipType):
-		return fmt.Sprintf("unsupported relationship type; use one of: %s", strings.Join(sortedKeys([]string{
-			"parent", "child", "blocks", "blocked_by", "related_to", "sibling", "duplicate_of", "supersedes",
-		}), ", "))
+		return fmt.Sprintf("unsupported link type; task links use one of: %s; resource links use one of: %s", supportedTaskTypes, supportedResourceTypes)
 	case errors.Is(err, taskdb.ErrInvalidLinkType):
-		return fmt.Sprintf("unsupported link type; use one of: %s", strings.Join(sortedKeys([]string{
-			taskdb.LinkTypeFile, taskdb.LinkTypeURL, taskdb.LinkTypeRepo, taskdb.LinkTypeWorktree, taskdb.LinkTypeObsidian, taskdb.LinkTypeOther,
-		}), ", "))
+		return fmt.Sprintf("unsupported link type; task links use one of: %s; resource links use one of: %s", supportedTaskTypes, supportedResourceTypes)
 	default:
 		return msg
 	}
@@ -374,6 +376,8 @@ func normalizeValidationMessage(err error, commandName string) string {
 	switch {
 	case errors.Is(err, gitctx.ErrNotGitRepo):
 		return "this command must be run inside a git repository"
+	case strings.Contains(msg, "read --description-file"):
+		return msg
 	case strings.Contains(msg, "invalid task status transition from "):
 		matches := regexp.MustCompile(`invalid task status transition from ([^ ]+) to ([^ ]+)`).FindStringSubmatch(msg)
 		if len(matches) == 3 {
@@ -473,7 +477,7 @@ func normalizeInternalErrorMessage(err error) string {
 	}
 	msg := strings.TrimSpace(err.Error())
 	switch {
-	case strings.Contains(msg, "UNIQUE constraint failed: relationships.target_task_id"):
+	case strings.Contains(msg, "UNIQUE constraint failed: links.target_task_id"):
 		return "that task already has a parent"
 	case strings.Contains(msg, "UNIQUE constraint failed: saved_views.name"):
 		return "a saved view with that name already exists"
@@ -540,6 +544,7 @@ func isValidationError(err error) bool {
 	return strings.Contains(msg, "requires at least one changed field") ||
 		strings.Contains(msg, "requires changes") ||
 		strings.Contains(msg, "is required") ||
+		strings.Contains(msg, "read --description-file") ||
 		strings.Contains(msg, "must differ") ||
 		strings.Contains(msg, "already exists") ||
 		strings.Contains(msg, "allows only one")

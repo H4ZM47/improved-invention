@@ -9,20 +9,17 @@ import (
 )
 
 func newRestoreCommand(opts *GlobalOptions) *cobra.Command {
-	cmd := newGroupCommand("restore", "Restore from a full-fidelity backup")
-	cmd.AddCommand(newRestoreApplyCommand(opts))
-	return cmd
-}
-
-func newRestoreApplyCommand(opts *GlobalOptions) *cobra.Command {
 	var input string
 	var force bool
 
 	cmd := &cobra.Command{
-		Use:   "apply",
-		Short: "Restore a portable full-fidelity backup artifact",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		Use:   "restore",
+		Short: "Restore from a portable full-fidelity backup artifact",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && args[0] == "apply" {
+				return fmt.Errorf("`grind restore apply` was removed; use `grind restore`")
+			}
 			if input == "" {
 				return fmt.Errorf("restore input path is required")
 			}
@@ -42,7 +39,7 @@ func newRestoreApplyCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind restore apply",
+					"command": "grind restore",
 					"data": map[string]any{
 						"input_path": input,
 						"db_path":    cfg.DBPath,

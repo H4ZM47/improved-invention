@@ -18,7 +18,9 @@ func newProjectCommand(opts *GlobalOptions) *cobra.Command {
 		newProjectListCommand(opts),
 		newProjectShowCommand(opts),
 		newProjectUpdateCommand(opts),
+		newProjectOpenCommand(opts),
 		newProjectCloseCommand(opts),
+		newProjectCancelCommand(opts),
 	)
 	return cmd
 }
@@ -239,16 +241,28 @@ func newProjectUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	return cmd
 }
 
+func newProjectOpenCommand(opts *GlobalOptions) *cobra.Command {
+	return newProjectStatusCommand(opts, "open", "Reopen a project", "backlog")
+}
+
 func newProjectCloseCommand(opts *GlobalOptions) *cobra.Command {
-	var status string
+	return newProjectStatusCommand(opts, "close", "Close a project", "completed")
+}
+
+func newProjectCancelCommand(opts *GlobalOptions) *cobra.Command {
+	return newProjectStatusCommand(opts, "cancel", "Cancel a project", "cancelled")
+}
+
+func newProjectStatusCommand(opts *GlobalOptions, use, short, statusValue string) *cobra.Command {
+	var retiredStatus string
 
 	cmd := &cobra.Command{
-		Use:   "close <project-ref>",
-		Short: "Close or reopen a project",
+		Use:   use + " <project-ref>",
+		Short: short,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if status == "" {
-				status = "completed"
+			if cmd.Flags().Changed("status") {
+				return projectLifecycleMigrationError(use, args[0], retiredStatus)
 			}
 
 			_, db, manager, err := projectManagerFromOptions(cmd.Context(), opts)
@@ -259,7 +273,7 @@ func newProjectCloseCommand(opts *GlobalOptions) *cobra.Command {
 
 			project, err := manager.Update(cmd.Context(), app.UpdateProjectRequest{
 				Reference: args[0],
-				Status:    &status,
+				Status:    &statusValue,
 			})
 			if err != nil {
 				return err
@@ -268,7 +282,7 @@ func newProjectCloseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "grind project close",
+					"command": "grind project " + use,
 					"data": map[string]any{
 						"project": project,
 					},
@@ -281,8 +295,22 @@ func newProjectCloseCommand(opts *GlobalOptions) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&status, "status", "", "Set the terminal or reopened project status")
+	cmd.Flags().StringVar(&retiredStatus, "status", "", "Retired project lifecycle flag; use the explicit open, close, or cancel verbs")
+	_ = cmd.Flags().MarkHidden("status")
 	return cmd
+}
+
+func projectLifecycleMigrationError(use, handle, status string) error {
+	switch status {
+	case "backlog":
+		return fmt.Errorf("`grind project close %s --status backlog` was removed; use `grind project open %s`", handle, handle)
+	case "completed":
+		return fmt.Errorf("`grind project close %s --status completed` was removed; use `grind project close %s`", handle, handle)
+	case "cancelled":
+		return fmt.Errorf("`grind project close %s --status cancelled` was removed; use `grind project cancel %s`", handle, handle)
+	default:
+		return fmt.Errorf("the `--status` flag was removed from `grind project %s`; use `grind project open`, `grind project close`, or `grind project cancel`", use)
+	}
 }
 
 func projectManagerFromOptions(ctx context.Context, opts *GlobalOptions) (taskconfig.Resolved, *sql.DB, app.ProjectManager, error) {

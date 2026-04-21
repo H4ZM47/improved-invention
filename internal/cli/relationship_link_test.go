@@ -15,41 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestRelationshipCommandsEndToEnd(t *testing.T) {
-	t.Parallel()
-
-	dbPath, leftTask, rightTask := seedTwoClaimedTasks(t)
-	opts := &GlobalOptions{
-		DBPath: dbPath,
-		Actor:  "alex",
-	}
-
-	add := newRelationshipAddCommand(opts)
-	add.SetArgs([]string{"blocks", leftTask, rightTask})
-	if err := add.Execute(); err != nil {
-		t.Fatalf("relationship add Execute() error = %v", err)
-	}
-
-	list := newRelationshipListCommand(opts)
-	list.SetArgs([]string{leftTask})
-	var stdout bytes.Buffer
-	list.SetOut(&stdout)
-	list.SetErr(&stdout)
-	if err := list.Execute(); err != nil {
-		t.Fatalf("relationship list Execute() error = %v", err)
-	}
-	if !strings.Contains(stdout.String(), "blocks") {
-		t.Fatalf("relationship list output = %q, want blocks row", stdout.String())
-	}
-
-	remove := newRelationshipRemoveCommand(opts)
-	remove.SetArgs([]string{"blocks", leftTask, rightTask})
-	if err := remove.Execute(); err != nil {
-		t.Fatalf("relationship remove Execute() error = %v", err)
-	}
-}
-
-func TestRelationshipChildAliasUsesSourceAsParent(t *testing.T) {
+func TestLinkAddTaskRelationshipUsesTaskTargetKind(t *testing.T) {
 	t.Parallel()
 
 	dbPath, parentTask, childTask := seedTwoClaimedTasks(t)
@@ -59,51 +25,59 @@ func TestRelationshipChildAliasUsesSourceAsParent(t *testing.T) {
 		JSON:   true,
 	}
 
-	add := newRelationshipAddCommand(opts)
+	add := newLinkAddCommand(opts)
 	add.SetArgs([]string{"child", parentTask, childTask})
 	var stdout bytes.Buffer
 	add.SetOut(&stdout)
 	add.SetErr(&stdout)
 	if err := add.Execute(); err != nil {
-		t.Fatalf("relationship add child Execute() error = %v", err)
+		t.Fatalf("link add child Execute() error = %v", err)
 	}
 
 	var payload struct {
 		Data struct {
-			Relationship struct {
+			Link struct {
 				Type       string `json:"type"`
 				SourceTask string `json:"source_task"`
-				TargetTask string `json:"target_task"`
-			} `json:"relationship"`
+				TargetKind string `json:"target_kind"`
+				Target     string `json:"target"`
+			} `json:"link"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
 		t.Fatalf("json.Unmarshal() error = %v; stdout=%q", err, stdout.String())
 	}
-	if got, want := payload.Data.Relationship.Type, "parent_of"; got != want {
-		t.Fatalf("relationship.Type = %q, want %q", got, want)
+	if got, want := payload.Data.Link.Type, "parent_of"; got != want {
+		t.Fatalf("link.Type = %q, want %q", got, want)
 	}
-	if got, want := payload.Data.Relationship.SourceTask, parentTask; got != want {
-		t.Fatalf("relationship.SourceTask = %q, want %q", got, want)
+	if got, want := payload.Data.Link.SourceTask, parentTask; got != want {
+		t.Fatalf("link.SourceTask = %q, want %q", got, want)
 	}
-	if got, want := payload.Data.Relationship.TargetTask, childTask; got != want {
-		t.Fatalf("relationship.TargetTask = %q, want %q", got, want)
+	if got, want := payload.Data.Link.TargetKind, "task"; got != want {
+		t.Fatalf("link.TargetKind = %q, want %q", got, want)
+	}
+	if got, want := payload.Data.Link.Target, childTask; got != want {
+		t.Fatalf("link.Target = %q, want %q", got, want)
 	}
 }
 
-func TestLinkCommandsEndToEnd(t *testing.T) {
+func TestLinkCommandsListAndRemoveTaskAndExternalLinks(t *testing.T) {
 	t.Parallel()
 
-	dbPath, taskHandle, _ := seedTwoClaimedTasks(t)
+	dbPath, taskHandle, otherTask := seedTwoClaimedTasks(t)
 	opts := &GlobalOptions{
 		DBPath: dbPath,
 		Actor:  "alex",
 	}
 
 	add := newLinkAddCommand(opts)
-	add.SetArgs([]string{taskHandle, "url", "https://example.com/spec"})
+	add.SetArgs([]string{"url", taskHandle, "https://example.com/spec"})
 	if err := add.Execute(); err != nil {
 		t.Fatalf("link add Execute() error = %v", err)
+	}
+	add.SetArgs([]string{"blocks", taskHandle, otherTask})
+	if err := add.Execute(); err != nil {
+		t.Fatalf("link add relationship Execute() error = %v", err)
 	}
 
 	list := newLinkListCommand(opts)
@@ -114,8 +88,11 @@ func TestLinkCommandsEndToEnd(t *testing.T) {
 	if err := list.Execute(); err != nil {
 		t.Fatalf("link list Execute() error = %v", err)
 	}
-	if !strings.Contains(stdout.String(), "https://example.com/spec") {
-		t.Fatalf("link list output = %q, want created url", stdout.String())
+	if !strings.Contains(stdout.String(), "https://example.com/spec") || !strings.Contains(stdout.String(), "\texternal\t") {
+		t.Fatalf("link list output = %q, want created external link with target kind", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), otherTask) || !strings.Contains(stdout.String(), "\ttask\t") {
+		t.Fatalf("link list output = %q, want created task link with target kind", stdout.String())
 	}
 
 	cfg := taskconfig.Resolved{
@@ -133,13 +110,17 @@ func TestLinkCommandsEndToEnd(t *testing.T) {
 		t.Fatalf("ListExternalLinksForTask() error = %v", err)
 	}
 	if len(links) != 1 {
-		t.Fatalf("len(links) = %d, want 1", len(links))
+		t.Fatalf("len(links) = %d, want 1 external link", len(links))
 	}
 
 	remove := newLinkRemoveCommand(opts)
-	remove.SetArgs([]string{taskHandle, links[0].UUID})
+	remove.SetArgs([]string{"url", taskHandle, "https://example.com/spec"})
 	if err := remove.Execute(); err != nil {
 		t.Fatalf("link remove Execute() error = %v", err)
+	}
+	remove.SetArgs([]string{"blocks", taskHandle, otherTask})
+	if err := remove.Execute(); err != nil {
+		t.Fatalf("link remove relationship Execute() error = %v", err)
 	}
 }
 
@@ -153,9 +134,9 @@ func TestTaskSessionCommandsEndToEnd(t *testing.T) {
 	}
 
 	for index, cmdFactory := range []func(*GlobalOptions) *cobra.Command{
-		newTaskStartCommand,
-		newTaskPauseCommand,
-		newTaskResumeCommand,
+		newTimeStartCommand,
+		newTimePauseCommand,
+		newTimeResumeCommand,
 	} {
 		cmd := cmdFactory(opts)
 		cmd.SetArgs([]string{taskHandle})

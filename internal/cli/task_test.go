@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -246,6 +248,133 @@ func TestTaskListJSONIncludesFiltersAndSearch(t *testing.T) {
 	}
 	if got, want := payload.Meta.Filters.Search, "contract"; got != want {
 		t.Fatalf("payload.Meta.Filters.Search = %q, want %q", got, want)
+	}
+}
+
+func TestTaskCreateDescriptionFileUsesContents(t *testing.T) {
+	t.Parallel()
+
+	dbPath := filepath.Join(t.TempDir(), "task.db")
+	descriptionPath := filepath.Join(t.TempDir(), "description.md")
+	wantDescription := "line one\nline two"
+	if err := os.WriteFile(descriptionPath, []byte(wantDescription), 0o644); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	opts := &GlobalOptions{
+		DBPath: dbPath,
+		Actor:  "alex",
+		JSON:   true,
+	}
+	cmd := newTaskCreateCommand(opts)
+	cmd.SetArgs([]string{"Description file task", "--description-file", descriptionPath})
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stdout)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var payload struct {
+		Data struct {
+			Task struct {
+				Description string `json:"description"`
+			} `json:"task"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v; stdout=%q", err, stdout.String())
+	}
+	if got, want := payload.Data.Task.Description, wantDescription; got != want {
+		t.Fatalf("payload.Data.Task.Description = %q, want %q", got, want)
+	}
+}
+
+func TestTaskUpdateDescriptionFileUsesContents(t *testing.T) {
+	t.Parallel()
+
+	dbPath := filepath.Join(t.TempDir(), "task.db")
+	cfg := taskconfig.Resolved{
+		DBPath:      dbPath,
+		BusyTimeout: 5 * time.Second,
+	}
+	db, err := taskdb.Open(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("taskdb.Open() error = %v", err)
+	}
+	defer db.Close()
+
+	manager := app.TaskManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+	task, err := manager.Create(context.Background(), app.CreateTaskRequest{
+		Title: "Update description file task",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if _, err := manager.Claim(context.Background(), app.ClaimTaskRequest{
+		Reference: task.Handle,
+		Lease:     time.Hour,
+	}); err != nil {
+		t.Fatalf("Claim() error = %v", err)
+	}
+
+	descriptionPath := filepath.Join(t.TempDir(), "updated-description.md")
+	wantDescription := "updated\nfrom file"
+	if err := os.WriteFile(descriptionPath, []byte(wantDescription), 0o644); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	opts := &GlobalOptions{
+		DBPath: dbPath,
+		Actor:  "alex",
+		JSON:   true,
+	}
+	cmd := newTaskUpdateCommand(opts)
+	cmd.SetArgs([]string{task.Handle, "--description-file", descriptionPath})
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stdout)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var payload struct {
+		Data struct {
+			Task struct {
+				Description string `json:"description"`
+			} `json:"task"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v; stdout=%q", err, stdout.String())
+	}
+	if got, want := payload.Data.Task.Description, wantDescription; got != want {
+		t.Fatalf("payload.Data.Task.Description = %q, want %q", got, want)
+	}
+}
+
+func TestPromptTaskDescriptionSupportsSkipAndMultiline(t *testing.T) {
+	t.Parallel()
+
+	got, err := promptTaskDescription(io.Discard, strings.NewReader("\n"), "Prompt task")
+	if err != nil {
+		t.Fatalf("promptTaskDescription(skip) error = %v", err)
+	}
+	if got != "" {
+		t.Fatalf("promptTaskDescription(skip) = %q, want empty", got)
+	}
+
+	got, err = promptTaskDescription(io.Discard, strings.NewReader("line one\nline two\n\n"), "Prompt task")
+	if err != nil {
+		t.Fatalf("promptTaskDescription(multiline) error = %v", err)
+	}
+	if want := "line one\nline two"; got != want {
+		t.Fatalf("promptTaskDescription(multiline) = %q, want %q", got, want)
 	}
 }
 
