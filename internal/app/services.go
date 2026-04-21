@@ -210,7 +210,16 @@ type CreateTaskRequest struct {
 	DueAt       *string
 }
 
-type ListTasksRequest struct{}
+type ListTasksRequest struct {
+	Statuses    []string
+	DomainRef   *string
+	ProjectRef  *string
+	AssigneeRef *string
+	DueBefore   *string
+	DueAfter    *string
+	Tags        []string
+	Search      string
+}
 
 type ShowTaskRequest struct {
 	Reference string

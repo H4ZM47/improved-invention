@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/H4ZM47/improved-invention/internal/app"
 	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
@@ -75,7 +76,16 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 }
 
 func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
-	return &cobra.Command{
+	var statuses []string
+	var tags []string
+	var domain string
+	var project string
+	var assignee string
+	var dueBefore string
+	var dueAfter string
+	var search string
+
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List tasks",
 		Args:  cobra.NoArgs,
@@ -86,12 +96,40 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 			}
 			defer db.Close()
 
-			items, err := manager.List(cmd.Context(), app.ListTasksRequest{})
+			if err := validateTaskListStatuses(statuses); err != nil {
+				return err
+			}
+			normalizedDueBefore, err := normalizeRFC3339Flag("due-before", dueBefore, cmd.Flags().Changed("due-before"))
+			if err != nil {
+				return err
+			}
+			normalizedDueAfter, err := normalizeRFC3339Flag("due-after", dueAfter, cmd.Flags().Changed("due-after"))
+			if err != nil {
+				return err
+			}
+			if normalizedDueBefore != "" {
+				dueBefore = normalizedDueBefore
+			}
+			if normalizedDueAfter != "" {
+				dueAfter = normalizedDueAfter
+			}
+
+			items, err := manager.List(cmd.Context(), app.ListTasksRequest{
+				Statuses:    statuses,
+				DomainRef:   optionalString(cmd, "domain", domain),
+				ProjectRef:  optionalString(cmd, "project", project),
+				AssigneeRef: optionalString(cmd, "assignee", assignee),
+				DueBefore:   optionalString(cmd, "due-before", dueBefore),
+				DueAfter:    optionalString(cmd, "due-after", dueAfter),
+				Tags:        tags,
+				Search:      search,
+			})
 			if err != nil {
 				return err
 			}
 
 			if opts.JSON {
+				filters := taskListFiltersMeta(statuses, tags, domain, project, assignee, dueBefore, dueAfter, search)
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
 					"command": "task list",
@@ -99,7 +137,8 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 						"items": items,
 					},
 					"meta": map[string]any{
-						"count": len(items),
+						"count":   len(items),
+						"filters": filters,
 					},
 				})
 			}
@@ -112,6 +151,17 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().StringArrayVar(&statuses, "status", nil, "Filter by task status; repeat to allow multiple statuses")
+	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Filter by task tag; repeat to require multiple tags")
+	cmd.Flags().StringVar(&domain, "domain", "", "Filter by task domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Filter by task project reference")
+	cmd.Flags().StringVar(&assignee, "assignee", "", "Filter by task assignee reference")
+	cmd.Flags().StringVar(&dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
+	cmd.Flags().StringVar(&dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
+	cmd.Flags().StringVar(&search, "search", "", "Filter by case-insensitive search across title and description")
+
+	return cmd
 }
 
 func newTaskShowCommand(opts *GlobalOptions) *cobra.Command {
@@ -637,4 +687,78 @@ func promptAssigneeDecision(out io.Writer, in io.Reader, decision app.Assignment
 	default:
 		return nil, false, fmt.Errorf("invalid assignee decision %q", strings.TrimSpace(choice))
 	}
+}
+
+func validateTaskListStatuses(statuses []string) error {
+	valid := map[string]struct{}{
+		"backlog":   {},
+		"active":    {},
+		"paused":    {},
+		"blocked":   {},
+		"completed": {},
+		"cancelled": {},
+	}
+
+	for _, status := range statuses {
+		trimmed := strings.TrimSpace(status)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := valid[trimmed]; !ok {
+			return fmt.Errorf("invalid --status value %q", trimmed)
+		}
+	}
+	return nil
+}
+
+func normalizeRFC3339Flag(name string, value string, changed bool) (string, error) {
+	if !changed {
+		return "", nil
+	}
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return "", fmt.Errorf("parse --%s: %w", name, err)
+	}
+	return parsed.UTC().Format(time.RFC3339), nil
+}
+
+func taskListFiltersMeta(statuses []string, tags []string, domain string, project string, assignee string, dueBefore string, dueAfter string, search string) map[string]any {
+	filters := map[string]any{}
+
+	if values := splitNonEmpty(statuses); len(values) > 0 {
+		filters["status"] = values
+	}
+	if values := splitNonEmpty(tags); len(values) > 0 {
+		filters["tags"] = values
+	}
+	if strings.TrimSpace(domain) != "" {
+		filters["domain"] = strings.TrimSpace(domain)
+	}
+	if strings.TrimSpace(project) != "" {
+		filters["project"] = strings.TrimSpace(project)
+	}
+	if strings.TrimSpace(assignee) != "" {
+		filters["assignee"] = strings.TrimSpace(assignee)
+	}
+	if strings.TrimSpace(dueBefore) != "" {
+		filters["due_before"] = strings.TrimSpace(dueBefore)
+	}
+	if strings.TrimSpace(dueAfter) != "" {
+		filters["due_after"] = strings.TrimSpace(dueAfter)
+	}
+	if strings.TrimSpace(search) != "" {
+		filters["search"] = strings.TrimSpace(search)
+	}
+
+	return filters
+}
+
+func splitNonEmpty(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
