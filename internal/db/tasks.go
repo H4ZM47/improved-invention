@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -52,6 +53,18 @@ type TaskUpdateInput struct {
 	DueAt       *string
 	Status      *string
 	ActorID     *int64
+}
+
+// TaskListQuery describes the supported task-list filters in v1.
+type TaskListQuery struct {
+	Statuses    []string
+	DomainRef   *string
+	ProjectRef  *string
+	AssigneeRef *string
+	DueBefore   *string
+	DueAfter    *string
+	Tags        []string
+	Search      string
 }
 
 // CreateTask inserts a new backlog task and its corresponding event.
@@ -125,8 +138,10 @@ func CreateTask(ctx context.Context, db *sql.DB, input TaskCreateInput) (Task, e
 }
 
 // ListTasks returns tasks ordered by most recently updated first.
-func ListTasks(ctx context.Context, db *sql.DB) ([]Task, error) {
-	rows, err := db.QueryContext(ctx, taskSelectQuery+` ORDER BY t.updated_at DESC, t.id DESC`)
+func ListTasks(ctx context.Context, db *sql.DB, query TaskListQuery) ([]Task, error) {
+	statement, args := buildTaskListQuery(query)
+
+	rows, err := db.QueryContext(ctx, statement, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list tasks: %w", err)
 	}
@@ -146,6 +161,86 @@ func ListTasks(ctx context.Context, db *sql.DB) ([]Task, error) {
 	}
 
 	return tasks, nil
+}
+
+func buildTaskListQuery(query TaskListQuery) (string, []any) {
+	statement := taskSelectQuery
+	where := make([]string, 0, 8)
+	args := make([]any, 0, 16)
+
+	statuses := compactStrings(query.Statuses)
+	if len(statuses) > 0 {
+		placeholders := make([]string, 0, len(statuses))
+		for _, status := range statuses {
+			placeholders = append(placeholders, "?")
+			args = append(args, status)
+		}
+		where = append(where, "t.status IN ("+strings.Join(placeholders, ", ")+")")
+	}
+
+	if ref := trimmedPointer(query.DomainRef); ref != nil {
+		where = append(where, "(d.handle = ? OR d.uuid = ?)")
+		args = append(args, *ref, *ref)
+	}
+	if ref := trimmedPointer(query.ProjectRef); ref != nil {
+		where = append(where, "(p.handle = ? OR p.uuid = ?)")
+		args = append(args, *ref, *ref)
+	}
+	if ref := trimmedPointer(query.AssigneeRef); ref != nil {
+		where = append(where, "(a.handle = ? OR a.uuid = ?)")
+		args = append(args, *ref, *ref)
+	}
+	if ref := trimmedPointer(query.DueBefore); ref != nil {
+		where = append(where, "t.due_at IS NOT NULL AND t.due_at <= ?")
+		args = append(args, *ref)
+	}
+	if ref := trimmedPointer(query.DueAfter); ref != nil {
+		where = append(where, "t.due_at IS NOT NULL AND t.due_at >= ?")
+		args = append(args, *ref)
+	}
+
+	for _, tag := range compactStrings(query.Tags) {
+		where = append(where, "EXISTS (SELECT 1 FROM json_each(t.tags) WHERE json_each.value = ?)")
+		args = append(args, tag)
+	}
+
+	if search := strings.TrimSpace(query.Search); search != "" {
+		pattern := "%" + strings.ToLower(search) + "%"
+		where = append(where, "(LOWER(t.title) LIKE ? OR LOWER(t.description) LIKE ?)")
+		args = append(args, pattern, pattern)
+	}
+
+	if len(where) > 0 {
+		statement += " WHERE " + strings.Join(where, " AND ")
+	}
+	statement += " ORDER BY t.updated_at DESC, t.id DESC"
+
+	return statement, args
+}
+
+func compactStrings(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+func trimmedPointer(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // FindTask resolves a task by handle or UUID.

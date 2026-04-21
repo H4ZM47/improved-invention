@@ -383,6 +383,106 @@ func TestTaskManagerAddManualTimeRequiresClaim(t *testing.T) {
 	}
 }
 
+func TestTaskManagerListAppliesFiltersAndSearch(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openActorManagerTestDB(t)
+
+	actorManager := ActorManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+	domainManager := DomainManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+	projectManager := ProjectManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+	taskManager := TaskManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+
+	human, err := actorManager.BootstrapConfiguredHumanActor(ctx)
+	if err != nil {
+		t.Fatalf("BootstrapConfiguredHumanActor() error = %v", err)
+	}
+	domain, err := domainManager.Create(ctx, CreateDomainRequest{Name: "Work"})
+	if err != nil {
+		t.Fatalf("CreateDomain() error = %v", err)
+	}
+	project, err := projectManager.Create(ctx, CreateProjectRequest{
+		Name:      "Task CLI",
+		DomainRef: domain.Handle,
+	})
+	if err != nil {
+		t.Fatalf("CreateProject() error = %v", err)
+	}
+
+	dueAt := "2026-04-21T12:00:00Z"
+	task, err := taskManager.Create(ctx, CreateTaskRequest{
+		Title:       "Write CLI contract",
+		Description: "Document list filters",
+		Tags:        []string{"cli", "contract"},
+		DomainRef:   &domain.Handle,
+		ProjectRef:  &project.Handle,
+		AssigneeRef: &human.Handle,
+		DueAt:       &dueAt,
+	})
+	if err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+	if _, err := taskManager.Claim(ctx, ClaimTaskRequest{
+		Reference: task.Handle,
+		Lease:     time.Hour,
+	}); err != nil {
+		t.Fatalf("Claim() error = %v", err)
+	}
+	active := "active"
+	if _, err := taskManager.Update(ctx, UpdateTaskRequest{
+		Reference: task.Handle,
+		Status:    &active,
+	}); err != nil {
+		t.Fatalf("Update(active) error = %v", err)
+	}
+
+	_, err = taskManager.Create(ctx, CreateTaskRequest{
+		Title:       "Write docs",
+		Description: "General docs work",
+		Tags:        []string{"docs"},
+	})
+	if err != nil {
+		t.Fatalf("CreateTask(other) error = %v", err)
+	}
+
+	items, err := taskManager.List(ctx, ListTasksRequest{
+		Statuses:    []string{"active"},
+		DomainRef:   &domain.Handle,
+		ProjectRef:  &project.Handle,
+		AssigneeRef: &human.Handle,
+		DueBefore:   stringRef("2026-04-21T23:59:59Z"),
+		DueAfter:    stringRef("2026-04-21T00:00:00Z"),
+		Tags:        []string{"cli"},
+		Search:      "contract",
+	})
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if got, want := len(items), 1; got != want {
+		t.Fatalf("len(items) = %d, want %d", got, want)
+	}
+	if got, want := items[0].Handle, task.Handle; got != want {
+		t.Fatalf("items[0].Handle = %q, want %q", got, want)
+	}
+}
+
+func stringRef(value string) *string {
+	return &value
+}
+
 func assertTaskEventCount(t *testing.T, db *sql.DB, taskUUID string, eventType string, want int) {
 	t.Helper()
 

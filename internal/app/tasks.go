@@ -63,9 +63,18 @@ func (m TaskManager) Create(ctx context.Context, req CreateTaskRequest) (TaskRec
 	return toTaskRecord(task), nil
 }
 
-// List returns the default task listing.
-func (m TaskManager) List(ctx context.Context, _ ListTasksRequest) ([]TaskRecord, error) {
-	tasks, err := taskdb.ListTasks(ctx, m.DB)
+// List returns the task listing for the provided filters.
+func (m TaskManager) List(ctx context.Context, req ListTasksRequest) ([]TaskRecord, error) {
+	tasks, err := taskdb.ListTasks(ctx, m.DB, taskdb.TaskListQuery{
+		Statuses:    req.Statuses,
+		DomainRef:   req.DomainRef,
+		ProjectRef:  req.ProjectRef,
+		AssigneeRef: req.AssigneeRef,
+		DueBefore:   req.DueBefore,
+		DueAfter:    req.DueAfter,
+		Tags:        req.Tags,
+		Search:      req.Search,
+	})
 	if err != nil {
 		return nil, err
 	}
