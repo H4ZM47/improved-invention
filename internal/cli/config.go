@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
+	taskconfig "github.com/H4ZM47/task-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

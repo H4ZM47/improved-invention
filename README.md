@@ -2,7 +2,7 @@
 
 Local-first task management for humans and AI agents.
 
-[GitHub Releases](https://github.com/H4ZM47/improved-invention/releases) • [CLI Contract](docs/reference/cli-contract.md) • [Human Quickstart](docs/guides/human-cli-quickstart.md) • [Agent Integration](docs/guides/agent-integration.md)
+[GitHub Releases](https://github.com/H4ZM47/task-cli/releases) • [CLI Contract](docs/reference/cli-contract.md) • [Human Quickstart](docs/guides/human-cli-quickstart.md) • [Agent Integration](docs/guides/agent-integration.md)
 
 ## Why it exists
 
@@ -27,7 +27,7 @@ Task CLI is designed for a different environment: one local machine, one human u
 
 ## Install
 
-Release assets are published on [GitHub Releases](https://github.com/H4ZM47/improved-invention/releases).
+Release assets are published on [GitHub Releases](https://github.com/H4ZM47/task-cli/releases).
 
 Each release includes:
 

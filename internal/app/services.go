@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/H4ZM47/improved-invention/internal/gitctx"
+	"github.com/H4ZM47/task-cli/internal/gitctx"
 )
 
 // Services groups the service-layer interfaces that CLI command handlers call.

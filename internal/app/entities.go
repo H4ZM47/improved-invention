@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
 )
 
 // DomainManager provides service-layer domain workflows used by commands.

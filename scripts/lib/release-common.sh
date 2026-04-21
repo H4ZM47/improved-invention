@@ -5,7 +5,7 @@ readonly RELEASE_COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(cd "${RELEASE_COMMON_DIR}/../.." && pwd)"
 
 default_repo_owner="H4ZM47"
-default_repo_name="improved-invention"
+default_repo_name="task-cli"
 
 repo_owner="${REPO_OWNER:-}"
 repo_name="${REPO_NAME:-}"
