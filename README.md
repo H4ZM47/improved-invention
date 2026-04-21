@@ -178,7 +178,7 @@ Common commands:
 - `grind create`, `grind list`, `grind show`, `grind update`
 - `grind open`, `grind close`, `grind cancel`
 - `grind claim acquire|renew|release|unlock`
-- `grind time start|pause|resume`, `grind time add`, `grind time edit`
+- `grind time start|pause|resume`, `grind time edit`
 - `grind domain ...`, `grind project ...`, `grind actor ...`
 - `grind milestone ...`, `grind view ...`, `grind export ...`, `grind serve`
 - `grind link ...`, `grind link-repo`

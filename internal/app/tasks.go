@@ -190,6 +190,20 @@ func (m TaskManager) ResumeSession(ctx context.Context, req ResumeTaskSessionReq
 }
 
 // AddManualTime records an explicit backfilled time entry on a claimed task.
+func (m TaskManager) ListManualTime(ctx context.Context, req ListManualTimeRequest) ([]ManualTimeEntryRecord, error) {
+	entries, err := taskdb.ListManualTimeEntries(ctx, m.DB, req.Reference)
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]ManualTimeEntryRecord, 0, len(entries))
+	for _, entry := range entries {
+		records = append(records, toManualTimeEntryRecord(entry))
+	}
+	return records, nil
+}
+
+// AddManualTime records an explicit backfilled time entry on a claimed task.
 func (m TaskManager) AddManualTime(ctx context.Context, req AddManualTimeRequest) (ManualTimeEntryRecord, error) {
 	actorID, err := m.resolveCurrentActorID(ctx)
 	if err != nil {
