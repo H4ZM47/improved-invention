@@ -1,7 +1,7 @@
 # CLI Contract
 
 Date: 2026-04-21
-Status: Initial v1 contract reference
+Status: Current v1 contract reference
 
 ## Purpose
 
@@ -129,10 +129,11 @@ task version --json
 - Reusing an existing exit code for a different failure class is not allowed.
 - Human-readable text may improve, but JSON structure and symbolic error codes are the durability target.
 
-## Immediate Follow-On Implementation
+## Implementation Status
 
-The next implementation steps after publishing this contract are:
+This contract is backed by the current CLI implementation on `main`, including:
 
-- wire `--json` output helpers into command handlers
-- map command failures onto the published exit-code table
-- add contract tests that lock JSON envelopes and exit codes in CI
+- stable JSON success and error envelopes at the process boundary
+- deterministic exit-code mapping
+- non-interactive command paths for state-changing workflows
+- contract-focused CLI tests in CI
