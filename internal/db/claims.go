@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -73,6 +74,9 @@ func AcquireClaim(ctx context.Context, db *sql.DB, input ClaimAcquireInput) (Cla
 		VALUES (?, ?, ?, ?)
 	`, claimUUID, task.ID, input.ActorID, expiresAt)
 	if err != nil {
+		if isClaimConflictError(err) {
+			return Claim{}, ErrClaimConflict
+		}
 		return Claim{}, fmt.Errorf("insert claim: %w", err)
 	}
 
@@ -280,6 +284,15 @@ func expireClaimsTx(ctx context.Context, tx *sql.Tx, taskID int64) error {
 		return fmt.Errorf("expire stale claims: %w", err)
 	}
 	return nil
+}
+
+func isClaimConflictError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "UNIQUE constraint failed: claims.task_id") ||
+		strings.Contains(msg, "claims_one_open_claim_per_task_idx")
 }
 
 func currentClaimTx(ctx context.Context, tx *sql.Tx, taskID int64) (Claim, error) {

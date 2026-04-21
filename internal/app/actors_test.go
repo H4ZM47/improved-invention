@@ -3,12 +3,9 @@ package app
 import (
 	"context"
 	"database/sql"
-	"path/filepath"
 	"testing"
-	"time"
 
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	"github.com/H4ZM47/improved-invention/internal/testutil"
 )
 
 func TestActorManagerBootstrapsHumanAndCreatesAgent(t *testing.T) {
@@ -41,20 +38,5 @@ func TestActorManagerBootstrapsHumanAndCreatesAgent(t *testing.T) {
 
 func openActorManagerTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-
-	cfg := taskconfig.Resolved{
-		DBPath:      filepath.Join(t.TempDir(), "task.db"),
-		BusyTimeout: 5 * time.Second,
-	}
-
-	db, err := taskdb.Open(context.Background(), cfg)
-	if err != nil {
-		t.Fatalf("taskdb.Open() error = %v", err)
-	}
-
-	t.Cleanup(func() {
-		_ = db.Close()
-	})
-
-	return db
+	return testutil.OpenSQLiteDB(t)
 }
