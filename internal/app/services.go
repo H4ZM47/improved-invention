@@ -31,6 +31,8 @@ type TaskService interface {
 	StartSession(context.Context, StartTaskSessionRequest) (TaskSessionRecord, error)
 	PauseSession(context.Context, PauseTaskSessionRequest) (TaskSessionRecord, error)
 	ResumeSession(context.Context, ResumeTaskSessionRequest) (TaskSessionRecord, error)
+	AddManualTime(context.Context, AddManualTimeRequest) (ManualTimeEntryRecord, error)
+	EditManualTime(context.Context, EditManualTimeRequest) (ManualTimeEntryRecord, error)
 	Claim(context.Context, ClaimTaskRequest) (ClaimRecord, error)
 	RenewClaim(context.Context, RenewClaimRequest) (ClaimRecord, error)
 	ReleaseClaim(context.Context, ReleaseClaimRequest) error
@@ -190,6 +192,14 @@ type TaskSessionRecord struct {
 	ElapsedSecond int64  `json:"elapsed_seconds"`
 }
 
+type ManualTimeEntryRecord struct {
+	EntryID        string `json:"entry_id"`
+	TaskHandle     string `json:"task_handle"`
+	DurationSecond int64  `json:"duration_seconds"`
+	StartedAt      string `json:"started_at"`
+	Note           string `json:"note"`
+}
+
 type CreateTaskRequest struct {
 	Title       string
 	Description string
@@ -234,6 +244,19 @@ type PauseTaskSessionRequest struct {
 type ResumeTaskSessionRequest struct {
 	Reference string
 	At        *time.Time
+}
+type AddManualTimeRequest struct {
+	Reference string
+	Duration  time.Duration
+	StartedAt *time.Time
+	Note      string
+}
+type EditManualTimeRequest struct {
+	Reference string
+	EntryID   string
+	Duration  *time.Duration
+	StartedAt *time.Time
+	Note      *string
 }
 type RenewClaimRequest struct {
 	Reference string

@@ -52,6 +52,7 @@ func NewRootCommand(build BuildInfo) *cobra.Command {
 		newTaskUnlockCommand(opts),
 		newRelationshipCommand(opts),
 		newLinkCommand(opts),
+		newTimeCommand(opts),
 		newTaskStartCommand(opts),
 		newTaskPauseCommand(opts),
 		newTaskResumeCommand(opts),

@@ -287,6 +287,102 @@ func TestTaskManagerCloseAutoClosesActiveSession(t *testing.T) {
 	assertTaskEventCount(t, db, task.UUID, "session_closed", 1)
 }
 
+func TestTaskManagerAddAndEditManualTime(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openActorManagerTestDB(t)
+	manager := TaskManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+
+	task, err := manager.Create(ctx, CreateTaskRequest{
+		Title: "Record manual time",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if _, err := manager.Claim(ctx, ClaimTaskRequest{
+		Reference: task.Handle,
+		Lease:     time.Hour,
+	}); err != nil {
+		t.Fatalf("Claim() error = %v", err)
+	}
+
+	startedAt := time.Date(2026, time.April, 21, 9, 0, 0, 0, time.UTC)
+	entry, err := manager.AddManualTime(ctx, AddManualTimeRequest{
+		Reference: task.Handle,
+		Duration:  45 * time.Minute,
+		StartedAt: &startedAt,
+		Note:      "Imported from notes",
+	})
+	if err != nil {
+		t.Fatalf("AddManualTime() error = %v", err)
+	}
+	if entry.EntryID == "" {
+		t.Fatal("entry.EntryID = empty, want generated manual entry id")
+	}
+	if got, want := entry.StartedAt, startedAt.Format(time.RFC3339); got != want {
+		t.Fatalf("entry.StartedAt = %q, want %q", got, want)
+	}
+
+	updatedDuration := 75 * time.Minute
+	updatedNote := "Corrected import"
+	updated, err := manager.EditManualTime(ctx, EditManualTimeRequest{
+		Reference: task.Handle,
+		EntryID:   entry.EntryID,
+		Duration:  &updatedDuration,
+		Note:      &updatedNote,
+	})
+	if err != nil {
+		t.Fatalf("EditManualTime() error = %v", err)
+	}
+	if got, want := updated.DurationSecond, int64(updatedDuration/time.Second); got != want {
+		t.Fatalf("updated.DurationSecond = %d, want %d", got, want)
+	}
+	if got, want := updated.Note, updatedNote; got != want {
+		t.Fatalf("updated.Note = %q, want %q", got, want)
+	}
+
+	total, err := taskdb.DeriveManualTaskTime(ctx, db, task.Handle)
+	if err != nil {
+		t.Fatalf("DeriveManualTaskTime() error = %v", err)
+	}
+	if got, want := total, updatedDuration; got != want {
+		t.Fatalf("DeriveManualTaskTime() = %s, want %s", got, want)
+	}
+}
+
+func TestTaskManagerAddManualTimeRequiresClaim(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openActorManagerTestDB(t)
+	manager := TaskManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+
+	task, err := manager.Create(ctx, CreateTaskRequest{
+		Title: "Claim-gated manual time",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	startedAt := time.Date(2026, time.April, 21, 9, 0, 0, 0, time.UTC)
+	_, err = manager.AddManualTime(ctx, AddManualTimeRequest{
+		Reference: task.Handle,
+		Duration:  30 * time.Minute,
+		StartedAt: &startedAt,
+	})
+	if !errors.Is(err, taskdb.ErrClaimRequired) {
+		t.Fatalf("AddManualTime() error = %v, want ErrClaimRequired", err)
+	}
+}
+
 func assertTaskEventCount(t *testing.T, db *sql.DB, taskUUID string, eventType string, want int) {
 	t.Helper()
 
