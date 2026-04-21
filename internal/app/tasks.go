@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"time"
 
 	taskdb "github.com/H4ZM47/improved-invention/internal/db"
 )
@@ -123,6 +125,16 @@ func (m TaskManager) Update(ctx context.Context, req UpdateTaskRequest) (TaskRec
 		assigneeRef = classification.defaultAssigneeHandle
 	}
 
+	if req.Status != nil && isTerminalStatus(*req.Status) && actorID != nil {
+		err := taskdb.CloseTaskSession(ctx, m.DB, taskdb.SessionEventInput{
+			TaskReference: req.Reference,
+			ActorID:       *actorID,
+		})
+		if err != nil && !errors.Is(err, taskdb.ErrSessionNotActive) {
+			return TaskRecord{}, err
+		}
+	}
+
 	task, err := taskdb.UpdateTask(ctx, m.DB, taskdb.TaskUpdateInput{
 		Reference:   req.Reference,
 		Title:       req.Title,
@@ -140,6 +152,21 @@ func (m TaskManager) Update(ctx context.Context, req UpdateTaskRequest) (TaskRec
 	}
 
 	return toTaskRecord(task), nil
+}
+
+// StartSession records the beginning of active work on a task.
+func (m TaskManager) StartSession(ctx context.Context, req StartTaskSessionRequest) (TaskSessionRecord, error) {
+	return m.recordSessionEvent(ctx, req.Reference, "active", taskdb.StartTaskSession)
+}
+
+// PauseSession records a pause in active work on a task.
+func (m TaskManager) PauseSession(ctx context.Context, req PauseTaskSessionRequest) (TaskSessionRecord, error) {
+	return m.recordSessionEvent(ctx, req.Reference, "paused", taskdb.PauseTaskSession)
+}
+
+// ResumeSession records the resumption of active work on a task.
+func (m TaskManager) ResumeSession(ctx context.Context, req ResumeTaskSessionRequest) (TaskSessionRecord, error) {
+	return m.recordSessionEvent(ctx, req.Reference, "active", taskdb.ResumeTaskSession)
 }
 
 // Claim acquires an exclusive claim on a task for the current actor.
@@ -267,6 +294,38 @@ func toTaskRecord(task taskdb.Task) TaskRecord {
 		UpdatedAt:       task.UpdatedAt,
 		ClosedAt:        task.ClosedAt,
 	}
+}
+
+func (m TaskManager) recordSessionEvent(ctx context.Context, reference string, state string, run func(context.Context, *sql.DB, taskdb.SessionEventInput) error) (TaskSessionRecord, error) {
+	actorID, err := m.resolveCurrentActorID(ctx)
+	if err != nil {
+		return TaskSessionRecord{}, err
+	}
+	if actorID == nil {
+		return TaskSessionRecord{}, fmt.Errorf("missing current actor for task session event")
+	}
+
+	if err := run(ctx, m.DB, taskdb.SessionEventInput{
+		TaskReference: reference,
+		ActorID:       *actorID,
+	}); err != nil {
+		return TaskSessionRecord{}, err
+	}
+
+	task, err := taskdb.FindTask(ctx, m.DB, reference)
+	if err != nil {
+		return TaskSessionRecord{}, fmt.Errorf("find task %q after session event: %w", reference, err)
+	}
+	elapsed, err := taskdb.DeriveElapsedTaskTime(ctx, m.DB, reference)
+	if err != nil {
+		return TaskSessionRecord{}, err
+	}
+
+	return TaskSessionRecord{
+		TaskHandle:    task.Handle,
+		State:         state,
+		ElapsedSecond: int64(elapsed / time.Second),
+	}, nil
 }
 
 type classificationPreview struct {
@@ -397,6 +456,10 @@ func handleProjectUpdateReference(project *taskdb.Project, requestedProjectRef *
 	}
 	handle := project.Handle
 	return &handle
+}
+
+func isTerminalStatus(status string) bool {
+	return status == "completed" || status == "cancelled"
 }
 
 func toClaimRecord(claim taskdb.Claim) ClaimRecord {

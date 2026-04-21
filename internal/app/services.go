@@ -11,6 +11,8 @@ type Services interface {
 	Projects() ProjectService
 	Domains() DomainService
 	Actors() ActorService
+	Relationships() RelationshipService
+	Links() LinkService
 	Views() ViewService
 	Runtime() RuntimeService
 }
@@ -26,6 +28,9 @@ type TaskService interface {
 	List(context.Context, ListTasksRequest) ([]TaskRecord, error)
 	Show(context.Context, ShowTaskRequest) (TaskRecord, error)
 	Update(context.Context, UpdateTaskRequest) (TaskRecord, error)
+	StartSession(context.Context, StartTaskSessionRequest) (TaskSessionRecord, error)
+	PauseSession(context.Context, PauseTaskSessionRequest) (TaskSessionRecord, error)
+	ResumeSession(context.Context, ResumeTaskSessionRequest) (TaskSessionRecord, error)
 	Claim(context.Context, ClaimTaskRequest) (ClaimRecord, error)
 	RenewClaim(context.Context, RenewClaimRequest) (ClaimRecord, error)
 	ReleaseClaim(context.Context, ReleaseClaimRequest) error
@@ -55,6 +60,20 @@ type ActorService interface {
 	BootstrapConfiguredHumanActor(context.Context) (ActorRecord, error)
 	GetOrCreateAgentActor(context.Context, string) (ActorRecord, error)
 	ParseAgentIdentity(string) (AgentIdentityRecord, error)
+}
+
+// RelationshipService defines task relationship workflows.
+type RelationshipService interface {
+	Create(context.Context, CreateRelationshipRequest) (RelationshipRecord, error)
+	List(context.Context, ListRelationshipsRequest) ([]RelationshipRecord, error)
+	Remove(context.Context, RemoveRelationshipRequest) error
+}
+
+// LinkService defines task external-link workflows.
+type LinkService interface {
+	Create(context.Context, CreateLinkRequest) (LinkRecord, error)
+	List(context.Context, ListLinksRequest) ([]LinkRecord, error)
+	Remove(context.Context, RemoveLinkRequest) error
 }
 
 // ViewService defines saved-view workflows.
@@ -147,6 +166,30 @@ type ClaimRecord struct {
 	Status      string `json:"status"`
 }
 
+type RelationshipRecord struct {
+	UUID       string `json:"uuid"`
+	Type       string `json:"type"`
+	SourceTask string `json:"source_task"`
+	TargetTask string `json:"target_task"`
+	CreatedAt  string `json:"created_at"`
+}
+
+type LinkRecord struct {
+	UUID      string            `json:"uuid"`
+	TaskID    string            `json:"task_id"`
+	Type      string            `json:"type"`
+	Target    string            `json:"target"`
+	Label     string            `json:"label"`
+	Metadata  map[string]string `json:"metadata"`
+	CreatedAt string            `json:"created_at"`
+}
+
+type TaskSessionRecord struct {
+	TaskHandle    string `json:"task_handle"`
+	State         string `json:"state"`
+	ElapsedSecond int64  `json:"elapsed_seconds"`
+}
+
 type CreateTaskRequest struct {
 	Title       string
 	Description string
@@ -180,6 +223,18 @@ type ClaimTaskRequest struct {
 	Reference string
 	Lease     time.Duration
 }
+type StartTaskSessionRequest struct {
+	Reference string
+	At        *time.Time
+}
+type PauseTaskSessionRequest struct {
+	Reference string
+	At        *time.Time
+}
+type ResumeTaskSessionRequest struct {
+	Reference string
+	At        *time.Time
+}
 type RenewClaimRequest struct {
 	Reference string
 	Lease     time.Duration
@@ -189,6 +244,45 @@ type ReleaseClaimRequest struct {
 }
 type UnlockTaskRequest struct {
 	Reference string
+}
+
+type CreateRelationshipRequest struct {
+	Type          string
+	SourceTaskRef string
+	TargetTaskRef string
+	ActorID       *int64
+}
+
+type ListRelationshipsRequest struct {
+	TaskRef string
+}
+
+type RemoveRelationshipRequest struct {
+	Type          string
+	SourceTaskRef string
+	TargetTaskRef string
+	ActorID       *int64
+}
+
+type CreateLinkRequest struct {
+	TaskRef  string
+	Type     string
+	Target   string
+	Label    string
+	Metadata map[string]string
+	ActorID  *int64
+}
+
+type ListLinksRequest struct {
+	TaskRef string
+}
+
+type RemoveLinkRequest struct {
+	TaskRef string
+	LinkRef string
+	Type    *string
+	Target  *string
+	ActorID *int64
 }
 
 type CreateProjectRequest struct {

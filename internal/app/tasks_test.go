@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -234,5 +235,71 @@ func TestTaskManagerUpdateRequiresAssigneeDecisionForReclassification(t *testing
 
 	if updated.AssigneeActorID == nil || *updated.AssigneeActorID != agent.UUID {
 		t.Fatalf("updated.AssigneeActorID = %v, want %q", updated.AssigneeActorID, agent.UUID)
+	}
+}
+
+func TestTaskManagerCloseAutoClosesActiveSession(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openActorManagerTestDB(t)
+	manager := TaskManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+
+	task, err := manager.Create(ctx, CreateTaskRequest{
+		Title: "Close session with task",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if _, err := manager.Claim(ctx, ClaimTaskRequest{
+		Reference: task.Handle,
+		Lease:     time.Hour,
+	}); err != nil {
+		t.Fatalf("Claim() error = %v", err)
+	}
+
+	if _, err := manager.StartSession(ctx, StartTaskSessionRequest{
+		Reference: task.Handle,
+	}); err != nil {
+		t.Fatalf("StartSession() error = %v", err)
+	}
+
+	active := "active"
+	if _, err := manager.Update(ctx, UpdateTaskRequest{
+		Reference: task.Handle,
+		Status:    &active,
+	}); err != nil {
+		t.Fatalf("Update(active) error = %v", err)
+	}
+
+	completed := "completed"
+	if _, err := manager.Update(ctx, UpdateTaskRequest{
+		Reference: task.Handle,
+		Status:    &completed,
+	}); err != nil {
+		t.Fatalf("Update(completed) error = %v", err)
+	}
+
+	assertTaskEventCount(t, db, task.UUID, "session_closed", 1)
+}
+
+func assertTaskEventCount(t *testing.T, db *sql.DB, taskUUID string, eventType string, want int) {
+	t.Helper()
+
+	var got int
+	if err := db.QueryRow(`
+		SELECT count(*)
+		FROM events
+		WHERE entity_type = 'task' AND entity_uuid = ? AND event_type = ?
+	`, taskUUID, eventType).Scan(&got); err != nil {
+		t.Fatalf("count task events failed: %v", err)
+	}
+
+	if got != want {
+		t.Fatalf("count(%s) = %d, want %d", eventType, got, want)
 	}
 }
