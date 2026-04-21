@@ -2,10 +2,16 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 func TestRunVersionJSONMatchesGolden(t *testing.T) {
@@ -126,6 +132,59 @@ func TestRunShowMissingSanitizesEntityNotFoundMessage(t *testing.T) {
 	}
 	if strings.Contains(stdout.String(), "sql: no rows in result set") {
 		t.Fatalf("stdout leaked raw sql details: %q", stdout.String())
+	}
+}
+
+func TestRunRelationshipAddInvalidTypeUsesDescriptiveMessage(t *testing.T) {
+	t.Parallel()
+
+	dbPath, leftTask, rightTask := seedTwoClaimedTasks(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "relationship", "add", "bogus", leftTask, rightTask}, &stdout, &stderr)
+	if got, want := exitCode, 41; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_RELATIONSHIP"`, `unsupported relationship type`, `parent`, `blocks`}) {
+		t.Fatalf("stdout = %q, want descriptive invalid relationship message", got)
+	}
+}
+
+func TestRunUpdateWithoutClaimUsesDescriptiveMessage(t *testing.T) {
+	t.Parallel()
+
+	dbPath := filepath.Join(t.TempDir(), "task.db")
+	cfg := taskconfig.Resolved{
+		DBPath:      dbPath,
+		BusyTimeout: 5 * time.Second,
+	}
+	db, err := taskdb.Open(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("taskdb.Open() error = %v", err)
+	}
+	defer db.Close()
+
+	taskManager := app.TaskManager{DB: db, HumanName: "alex"}
+	task, err := taskManager.Create(context.Background(), app.CreateTaskRequest{Title: "Needs claim"})
+	if err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "update", task.Handle, "--title", "Updated"}, &stdout, &stderr)
+	if got, want := exitCode, 30; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "CLAIM_REQUIRED"`, `requires an active claim`}) {
+		t.Fatalf("stdout = %q, want descriptive claim-required message", got)
 	}
 }
 

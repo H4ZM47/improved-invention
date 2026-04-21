@@ -4,7 +4,7 @@
     "code": "VIEW_NOT_FOUND",
     "details": {},
     "exit_code": 60,
-    "message": "saved view not found: \"Missing\""
+    "message": "saved view \"Missing\" was not found"
   },
   "ok": false
 }
