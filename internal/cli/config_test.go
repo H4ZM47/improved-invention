@@ -29,8 +29,9 @@ func TestNewConfigCommandJSONOutput(t *testing.T) {
 		Command string `json:"command"`
 		Data    struct {
 			Config struct {
-				DBPath string `json:"db_path"`
-				Actor  string `json:"actor"`
+				DBPath         string `json:"db_path"`
+				Actor          string `json:"actor"`
+				EffectiveActor string `json:"effective_actor"`
 			} `json:"config"`
 		} `json:"data"`
 	}
@@ -53,5 +54,8 @@ func TestNewConfigCommandJSONOutput(t *testing.T) {
 
 	if got, want := payload.Data.Config.Actor, "codex:agent-7"; got != want {
 		t.Fatalf("Actor = %q, want %q", got, want)
+	}
+	if got, want := payload.Data.Config.EffectiveActor, "codex:agent-7"; got != want {
+		t.Fatalf("EffectiveActor = %q, want %q", got, want)
 	}
 }

@@ -29,6 +29,10 @@ func newConfigShowCommand(opts *GlobalOptions) *cobra.Command {
 			}
 
 			if opts.JSON {
+				effectiveActor := cfg.Actor
+				if effectiveActor == "" {
+					effectiveActor = cfg.HumanName
+				}
 				payload := map[string]any{
 					"ok":      true,
 					"command": "grind config show",
@@ -37,6 +41,7 @@ func newConfigShowCommand(opts *GlobalOptions) *cobra.Command {
 							"data_dir":        cfg.DataDir,
 							"db_path":         cfg.DBPath,
 							"actor":           cfg.Actor,
+							"effective_actor": effectiveActor,
 							"human_name":      cfg.HumanName,
 							"busy_timeout_ms": cfg.BusyTimeout.Milliseconds(),
 							"claim_lease_h":   int64(cfg.ClaimLease.Hours()),
@@ -53,10 +58,16 @@ func newConfigShowCommand(opts *GlobalOptions) *cobra.Command {
 
 			_, err = fmt.Fprintf(
 				cmd.OutOrStdout(),
-				"data_dir=%s\ndb_path=%s\nactor=%s\nhuman_name=%s\nbusy_timeout_ms=%d\nclaim_lease_h=%d\n",
+				"data_dir=%s\ndb_path=%s\nactor=%s\neffective_actor=%s\nhuman_name=%s\nbusy_timeout_ms=%d\nclaim_lease_h=%d\n",
 				cfg.DataDir,
 				cfg.DBPath,
 				cfg.Actor,
+				func() string {
+					if cfg.Actor != "" {
+						return cfg.Actor
+					}
+					return cfg.HumanName
+				}(),
 				cfg.HumanName,
 				cfg.BusyTimeout.Milliseconds(),
 				int64(cfg.ClaimLease.Hours()),

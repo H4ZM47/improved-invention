@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -45,6 +46,48 @@ func TestRelationshipCommandsEndToEnd(t *testing.T) {
 	remove.SetArgs([]string{"blocks", leftTask, rightTask})
 	if err := remove.Execute(); err != nil {
 		t.Fatalf("relationship remove Execute() error = %v", err)
+	}
+}
+
+func TestRelationshipChildAliasUsesSourceAsParent(t *testing.T) {
+	t.Parallel()
+
+	dbPath, parentTask, childTask := seedTwoClaimedTasks(t)
+	opts := &GlobalOptions{
+		DBPath: dbPath,
+		Actor:  "alex",
+		JSON:   true,
+	}
+
+	add := newRelationshipAddCommand(opts)
+	add.SetArgs([]string{"child", parentTask, childTask})
+	var stdout bytes.Buffer
+	add.SetOut(&stdout)
+	add.SetErr(&stdout)
+	if err := add.Execute(); err != nil {
+		t.Fatalf("relationship add child Execute() error = %v", err)
+	}
+
+	var payload struct {
+		Data struct {
+			Relationship struct {
+				Type       string `json:"type"`
+				SourceTask string `json:"source_task"`
+				TargetTask string `json:"target_task"`
+			} `json:"relationship"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v; stdout=%q", err, stdout.String())
+	}
+	if got, want := payload.Data.Relationship.Type, "parent_of"; got != want {
+		t.Fatalf("relationship.Type = %q, want %q", got, want)
+	}
+	if got, want := payload.Data.Relationship.SourceTask, parentTask; got != want {
+		t.Fatalf("relationship.SourceTask = %q, want %q", got, want)
+	}
+	if got, want := payload.Data.Relationship.TargetTask, childTask; got != want {
+		t.Fatalf("relationship.TargetTask = %q, want %q", got, want)
 	}
 }
 
@@ -109,15 +152,21 @@ func TestTaskSessionCommandsEndToEnd(t *testing.T) {
 		Actor:  "alex",
 	}
 
-	for _, cmdFactory := range []func(*GlobalOptions) *cobra.Command{
+	for index, cmdFactory := range []func(*GlobalOptions) *cobra.Command{
 		newTaskStartCommand,
 		newTaskPauseCommand,
 		newTaskResumeCommand,
 	} {
 		cmd := cmdFactory(opts)
 		cmd.SetArgs([]string{taskHandle})
+		var stdout bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stdout)
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("session command Execute() error = %v", err)
+		}
+		if got := stdout.String(); !strings.Contains(got, "elapsed_seconds=") || !strings.Contains(got, "task="+taskHandle) {
+			t.Fatalf("session command %d output = %q, want labeled fields", index, got)
 		}
 	}
 }

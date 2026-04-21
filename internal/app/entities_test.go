@@ -78,6 +78,41 @@ func TestDomainAndProjectManagersCreateUpdateAndClose(t *testing.T) {
 	if closedDomain.ClosedAt == nil {
 		t.Fatal("closedDomain.ClosedAt = nil, want terminal timestamp")
 	}
+
+	backlog := "backlog"
+	reopenedDomain, err := domainManager.Update(context.Background(), UpdateDomainRequest{
+		Reference: domain.Handle,
+		Status:    &backlog,
+	})
+	if err != nil {
+		t.Fatalf("UpdateDomain(reopen) error = %v", err)
+	}
+	if got, want := reopenedDomain.Status, "backlog"; got != want {
+		t.Fatalf("reopenedDomain.Status = %q, want %q", got, want)
+	}
+
+	completed := "completed"
+	closedProject, err := projectManager.Update(context.Background(), UpdateProjectRequest{
+		Reference: project.Handle,
+		Status:    &completed,
+	})
+	if err != nil {
+		t.Fatalf("UpdateProject(completed) error = %v", err)
+	}
+	if closedProject.ClosedAt == nil {
+		t.Fatal("closedProject.ClosedAt = nil, want terminal timestamp")
+	}
+
+	reopenedProject, err := projectManager.Update(context.Background(), UpdateProjectRequest{
+		Reference: project.Handle,
+		Status:    &backlog,
+	})
+	if err != nil {
+		t.Fatalf("UpdateProject(reopen) error = %v", err)
+	}
+	if got, want := reopenedProject.Status, "backlog"; got != want {
+		t.Fatalf("reopenedProject.Status = %q, want %q", got, want)
+	}
 }
 
 func stringPointer(value string) *string {

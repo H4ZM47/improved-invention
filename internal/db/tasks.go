@@ -432,7 +432,7 @@ func validateLifecycleTransition(from string, to string) error {
 			return nil
 		}
 	case "completed", "cancelled":
-		if to == "active" || to == "paused" || to == "blocked" {
+		if to == "backlog" || to == "active" || to == "paused" || to == "blocked" {
 			return nil
 		}
 	}

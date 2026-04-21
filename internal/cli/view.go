@@ -44,12 +44,23 @@ type viewFilterFlags struct {
 func (f *viewFilterFlags) bind(cmd *cobra.Command) {
 	cmd.Flags().StringArrayVar(&f.statuses, "status", nil, "Filter by task status; repeat to allow multiple statuses")
 	cmd.Flags().StringArrayVar(&f.tags, "tag", nil, "Filter by task tag; repeat to require multiple tags")
-	cmd.Flags().StringVar(&f.domain, "domain", "", "Filter by grind domain reference")
-	cmd.Flags().StringVar(&f.project, "project", "", "Filter by grind project reference")
+	cmd.Flags().StringVar(&f.domain, "domain", "", "Filter by domain reference")
+	cmd.Flags().StringVar(&f.project, "project", "", "Filter by project reference")
 	cmd.Flags().StringVar(&f.assignee, "assignee", "", "Filter by task assignee reference")
 	cmd.Flags().StringVar(&f.dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
 	cmd.Flags().StringVar(&f.dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
 	cmd.Flags().StringVar(&f.search, "search", "", "Filter by case-insensitive search across title and description")
+}
+
+func (f viewFilterFlags) anyChanged(cmd *cobra.Command) bool {
+	return cmd.Flags().Changed("status") ||
+		cmd.Flags().Changed("tag") ||
+		cmd.Flags().Changed("domain") ||
+		cmd.Flags().Changed("project") ||
+		cmd.Flags().Changed("assignee") ||
+		cmd.Flags().Changed("due-before") ||
+		cmd.Flags().Changed("due-after") ||
+		cmd.Flags().Changed("search")
 }
 
 func (f viewFilterFlags) toSavedViewFilters() (app.SavedViewFilters, error) {
@@ -140,9 +151,10 @@ func newViewUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			}
 
 			view, err := manager.Update(ctx, app.UpdateViewRequest{
-				Name:    args[0],
-				NewName: newName,
-				Filters: savedFilters,
+				Name:           args[0],
+				NewName:        newName,
+				Filters:        savedFilters,
+				ReplaceFilters: filters.anyChanged(cmd),
 			})
 			if err != nil {
 				return err

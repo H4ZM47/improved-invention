@@ -61,7 +61,19 @@ func (m ViewManager) Show(ctx context.Context, req ShowViewRequest) (ViewRecord,
 
 // Update replaces the filters and optionally the name of a saved view.
 func (m ViewManager) Update(ctx context.Context, req UpdateViewRequest) (ViewRecord, error) {
-	filtersJSON, err := marshalSavedViewFilters(req.Filters)
+	filters := req.Filters
+	if !req.ReplaceFilters {
+		current, err := taskdb.FindSavedView(ctx, m.DB, req.Name)
+		if err != nil {
+			return ViewRecord{}, err
+		}
+		filters, err = unmarshalSavedViewFilters(current.FiltersJSON)
+		if err != nil {
+			return ViewRecord{}, fmt.Errorf("decode saved view %q filters: %w", current.Name, err)
+		}
+	}
+
+	filtersJSON, err := marshalSavedViewFilters(filters)
 	if err != nil {
 		return ViewRecord{}, err
 	}

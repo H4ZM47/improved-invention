@@ -36,10 +36,6 @@ func newProjectCreateCommand(opts *GlobalOptions) *cobra.Command {
 		Short: "Create a project",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if domain == "" {
-				return fmt.Errorf("grind project create requires --domain")
-			}
-
 			_, db, manager, err := projectManagerFromOptions(cmd.Context(), opts)
 			if err != nil {
 				return err
@@ -81,6 +77,7 @@ func newProjectCreateCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the project assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the project due timestamp")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated project tags")
+	_ = cmd.MarkFlagRequired("domain")
 	return cmd
 }
 
