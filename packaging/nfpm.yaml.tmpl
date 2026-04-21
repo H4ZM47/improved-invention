@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://nfpm.goreleaser.com/schema.json
+name: "task-cli"
+arch: "__ARCH__"
+platform: "linux"
+version: "__VERSION__"
+release: "1"
+section: "utils"
+priority: "optional"
+maintainer: "H4ZM47 <opensource@users.noreply.github.com>"
+description: |
+  Local-first task management CLI for humans and AI agents.
+vendor: "H4ZM47"
+homepage: "https://github.com/__REPO_OWNER__/__REPO_NAME__"
+license: "MIT"
+contents:
+  - src: "__BINARY_PATH__"
+    dst: /usr/bin/task
+    file_info:
+      mode: 0755
+  - src: "__README_PATH__"
+    dst: /usr/share/doc/task-cli/README.md
+    file_info:
+      mode: 0644
+  - src: "__LICENSE_PATH__"
+    dst: /usr/share/doc/task-cli/LICENSE
+    file_info:
+      mode: 0644

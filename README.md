@@ -69,6 +69,26 @@ make test   # go test ./... via scripts/test.sh
 make build  # build dist/task via scripts/build.sh
 ```
 
+Packaging and release metadata:
+
+```sh
+./scripts/build-packaging-artifacts.sh
+```
+
+That single script:
+
+- builds the portable release archives into `dist/releases/`
+- writes `dist/releases/checksums.txt`
+- builds Linux `.deb` and `.rpm` artifacts into `dist/packages/`
+- generates a tap-ready Homebrew formula into `dist/metadata/homebrew-tap/Formula/task-cli.rb`
+- generates winget manifests into `dist/metadata/winget/`
+
+To copy the generated formula into a Homebrew tap checkout:
+
+```sh
+HOMEBREW_TAP_DIR=/path/to/homebrew-task-cli ./scripts/sync-homebrew-tap.sh
+```
+
 ## Design and reference docs
 
 Planning:
