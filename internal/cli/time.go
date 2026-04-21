@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
+	"github.com/H4ZM47/grind/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +63,7 @@ func newTimeAddCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task time add",
+					"command": "grind time add",
 					"data": map[string]any{
 						"entry": entry,
 					},
@@ -122,7 +122,7 @@ func newTimeEditCommand(opts *GlobalOptions) *cobra.Command {
 				req.Note = &note
 			}
 			if req.Duration == nil && req.StartedAt == nil && req.Note == nil {
-				return fmt.Errorf("task time edit requires at least one changed field")
+				return fmt.Errorf("grind time edit requires at least one changed field")
 			}
 
 			entry, err := manager.EditManualTime(cmd.Context(), req)
@@ -133,7 +133,7 @@ func newTimeEditCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task time edit",
+					"command": "grind time edit",
 					"data": map[string]any{
 						"entry": entry,
 					},

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/H4ZM47/task-cli/internal/app"
+	"github.com/H4ZM47/grind/internal/app"
 )
 
 func TestEncodeTXTEmptyBundle(t *testing.T) {

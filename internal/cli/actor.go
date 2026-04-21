@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +44,7 @@ func newActorListCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				payload := map[string]any{
 					"ok":      true,
-					"command": "task actor list",
+					"command": "grind actor list",
 					"data": map[string]any{
 						"items": actors,
 					},
@@ -95,7 +95,7 @@ func newActorShowCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task actor show",
+					"command": "grind actor show",
 					"data": map[string]any{
 						"actor": actor,
 					},

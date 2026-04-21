@@ -40,8 +40,8 @@ jobs:
       - name: Upload built binary
         uses: actions/upload-artifact@v4
         with:
-          name: task-linux-amd64-dev
-          path: dist/task
+          name: grind-linux-amd64-dev
+          path: dist/grind
 
   package-manager-artifacts:
     name: Package manager artifacts
@@ -60,7 +60,7 @@ jobs:
         env:
           COMMIT_VALUE: ${{ github.sha }}
           REPO_OWNER: H4ZM47
-          REPO_NAME: improved-invention
+          REPO_NAME: grind
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             export VERSION_VALUE="${GITHUB_REF_NAME#v}"
@@ -73,21 +73,21 @@ jobs:
       - name: Upload release archives and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: task-release-archives
+          name: grind-release-archives
           path: dist/releases
           if-no-files-found: error
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
         with:
-          name: task-linux-packages
+          name: grind-linux-packages
           path: dist/packages
           if-no-files-found: error
 
       - name: Upload package manager metadata
         uses: actions/upload-artifact@v4
         with:
-          name: task-package-manager-metadata
+          name: grind-package-manager-metadata
           path: dist/metadata
           if-no-files-found: error
 
@@ -137,6 +137,6 @@ jobs:
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: task-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: grind-${{ matrix.goos }}-${{ matrix.goarch }}
           path: ${{ steps.package.outputs.archive_path }}
           if-no-files-found: error

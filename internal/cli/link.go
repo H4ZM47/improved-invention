@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
-	"github.com/H4ZM47/task-cli/internal/gitctx"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
+	"github.com/H4ZM47/grind/internal/gitctx"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +59,7 @@ func newLinkAttachCurrentRepoCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task link attach-current-repo",
+					"command": "grind link attach-current-repo",
 					"data": map[string]any{
 						"repo_link":     result.RepoLink,
 						"worktree_link": result.WorktreeLink,
@@ -112,7 +112,7 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task link add",
+					"command": "grind link add",
 					"data": map[string]any{
 						"link": link,
 					},
@@ -149,7 +149,7 @@ func newLinkListCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task link list",
+					"command": "grind link list",
 					"data": map[string]any{
 						"items": items,
 					},
@@ -202,7 +202,7 @@ func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task link remove",
+					"command": "grind link remove",
 					"data":    map[string]any{},
 					"meta":    map[string]any{},
 				})

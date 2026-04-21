@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	"github.com/H4ZM47/task-cli/internal/migrate"
-	migrationsfs "github.com/H4ZM47/task-cli/migrations"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	"github.com/H4ZM47/grind/internal/migrate"
+	migrationsfs "github.com/H4ZM47/grind/migrations"
 	_ "modernc.org/sqlite"
 )
 

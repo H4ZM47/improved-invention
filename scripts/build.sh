@@ -2,4 +2,4 @@
 set -euo pipefail
 
 mkdir -p dist
-go build -o dist/task ./cmd/task
+go build -o dist/grind ./cmd/grind

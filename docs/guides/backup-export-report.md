@@ -1,6 +1,6 @@
 # Backup, Export, and Report Usage
 
-Task CLI supports three different read and portability paths:
+Grind supports three different read and portability paths:
 
 - `backup`: full-fidelity database copies for disaster recovery or machine moves
 - `export`: portable task snapshots in JSON, CSV, TXT, or Markdown
@@ -11,7 +11,7 @@ Task CLI supports three different read and portability paths:
 Create a backup artifact:
 
 ```sh
-task backup create --output ./task-backup.sqlite --json
+grind backup create --output ./grind-backup.sqlite --json
 ```
 
 What a backup preserves:
@@ -29,13 +29,13 @@ Use backups when you want a restorable copy of the entire system, not just a rep
 Restore into a target database:
 
 ```sh
-task restore apply --input ./task-backup.sqlite --db ./restored-task.db --json
+grind restore apply --input ./grind-backup.sqlite --db ./restored-grind.db --json
 ```
 
 Overwrite an existing target database:
 
 ```sh
-task restore apply --input ./task-backup.sqlite --db ./task.db --force --json
+grind restore apply --input ./grind-backup.sqlite --db ./grind.db --force --json
 ```
 
 Operational notes:
@@ -49,15 +49,15 @@ Operational notes:
 Export the current database contents as JSON:
 
 ```sh
-task export json --output ./tasks.json
+grind export json --output ./tasks.json
 ```
 
 Other supported formats:
 
 ```sh
-task export csv --output ./tasks.csv
-task export txt --output ./tasks.txt
-task export markdown --output ./tasks.md
+grind export csv --output ./tasks.csv
+grind export txt --output ./tasks.txt
+grind export markdown --output ./tasks.md
 ```
 
 If `--output` is omitted, export content is written to stdout.
@@ -74,12 +74,12 @@ Use exports when you need:
 Start the read-only report server:
 
 ```sh
-task report serve --addr 127.0.0.1:8080
+grind report serve --addr 127.0.0.1:8080
 ```
 
 Key routes:
 
-- `/tasks`: HTML task list
+- `/tasks`: HTML grind list
 - `/tasks/{task-ref}`: HTML task detail
 - `/api/tasks`: JSON list endpoint
 

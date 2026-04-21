@@ -5,7 +5,7 @@ Status: Accepted for v1
 
 ## Decision
 
-Task CLI v1 will be implemented in Go as a single-binary CLI application with a layered architecture:
+Grind v1 will be implemented in Go as a single-binary CLI application with a layered architecture:
 
 - Go for the application runtime and build toolchain
 - `cobra` for command parsing and help generation
@@ -160,7 +160,7 @@ Why not chosen:
 The first scaffold should assume a structure close to:
 
 ```text
-cmd/task/
+cmd/grind/
 internal/app/
 internal/cli/
 internal/config/
@@ -175,7 +175,7 @@ testdata/
 
 Guidance:
 
-- `cmd/task` owns process startup only
+- `cmd/grind` owns process startup only
 - `internal/cli` owns Cobra command wiring and output adapters
 - `internal/app` owns service-layer orchestration
 - `internal/db` owns SQLite access and transactions

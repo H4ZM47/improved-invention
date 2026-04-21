@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 func TestBackupCreateWritesArtifactToOutputPath(t *testing.T) {
@@ -43,7 +43,7 @@ func TestBackupCreateWritesArtifactToOutputPath(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task backup create"; got != want {
+	if got, want := payload.Command, "grind backup create"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Data.OutputPath, outputPath; got != want {
@@ -89,7 +89,7 @@ func TestRestoreApplyRestoresArtifactIntoTargetDatabase(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task restore apply"; got != want {
+	if got, want := payload.Command, "grind restore apply"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Data.DBPath, targetPath; got != want {
@@ -179,7 +179,7 @@ func seedBackupRestoreFixturesAtPath(t *testing.T, dbPath string) string {
 		t.Fatalf("CreateDomain() error = %v", err)
 	}
 	project, err := (app.ProjectManager{DB: db, HumanName: "alex"}).Create(context.Background(), app.CreateProjectRequest{
-		Name:      "Task CLI",
+		Name:      "Grind",
 		DomainRef: domain.Handle,
 	})
 	if err != nil {

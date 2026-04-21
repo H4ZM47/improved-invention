@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
-	"github.com/H4ZM47/task-cli/internal/export"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
+	"github.com/H4ZM47/grind/internal/export"
 	"github.com/spf13/cobra"
 )
 

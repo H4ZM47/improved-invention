@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
-	"github.com/H4ZM47/task-cli/internal/gitctx"
+	"github.com/H4ZM47/grind/internal/app"
+	taskdb "github.com/H4ZM47/grind/internal/db"
+	"github.com/H4ZM47/grind/internal/gitctx"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ func Run(build BuildInfo, args []string, stdout io.Writer, stderr io.Writer) int
 		return 0
 	}
 
-	commandName := "task"
+	commandName := "grind"
 	if cmd != nil && cmd.CommandPath() != "" {
 		commandName = cmd.CommandPath()
 	}
@@ -93,13 +93,13 @@ func classifyFailure(err error, commandName string) failureClass {
 		failure.Code, failure.ExitCode = "FILTER_INVALID", 61
 	case isEntityNotFoundError(err):
 		failure.Code, failure.ExitCode = "ENTITY_NOT_FOUND", 20
-	case strings.HasPrefix(commandName, "task backup"):
+	case strings.HasPrefix(commandName, "grind backup"):
 		failure.Code, failure.ExitCode = "BACKUP_FAILED", 72
-	case strings.HasPrefix(commandName, "task restore"):
+	case strings.HasPrefix(commandName, "grind restore"):
 		failure.Code, failure.ExitCode = "RESTORE_FAILED", 73
-	case strings.HasPrefix(commandName, "task report"):
+	case strings.HasPrefix(commandName, "grind report"):
 		failure.Code, failure.ExitCode = "REPORT_SERVER_FAILED", 71
-	case strings.HasPrefix(commandName, "task export"):
+	case strings.HasPrefix(commandName, "grind export"):
 		failure.Code, failure.ExitCode = "EXPORT_FAILED", 70
 	case isMigrationError(err):
 		failure.Code, failure.ExitCode = "MIGRATION_FAILED", 82

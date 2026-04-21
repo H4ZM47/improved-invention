@@ -1,11 +1,11 @@
-# Task CLI Design
+# Grind Design
 
 Date: 2026-04-20
 Status: Approved design draft
 
 ## Summary
 
-Task CLI is a cross-platform, CLI-first task management utility for a single machine with one configured human user and multiple ephemeral agent processes. Its primary job is to let humans and AI agents capture, review, and manage project-related work through the same interface, with a shared local SQLite database as the v1 source of truth.
+Grind is a cross-platform, CLI-first task management utility for a single machine with one configured human user and multiple ephemeral agent processes. Its primary job is to let humans and AI agents capture, review, and manage project-related work through the same interface, with a shared local SQLite database as the v1 source of truth.
 
 The selected v1 shape is a CLI-first system with:
 
@@ -61,7 +61,7 @@ Reasons:
 
 V1 uses five first-class record types:
 
-- `task`
+- `grind`
 - `project`
 - `domain`
 - `actor`
@@ -366,7 +366,7 @@ The local HTML report server is read-only in v1.
 
 Must-have views:
 
-- task list with filters
+- grind list with filters
 - task detail page or inline task expansion
 
 Other graphical or dashboard-style views are deferred to v2.

@@ -1,4 +1,4 @@
-module github.com/H4ZM47/task-cli
+module github.com/H4ZM47/grind
 
 go 1.26.1
 

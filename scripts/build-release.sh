@@ -19,12 +19,12 @@ if [[ -z "${GOARCH_VALUE}" ]]; then
   exit 1
 fi
 
-base_name="task_${VERSION_VALUE}_${GOOS_VALUE}_${GOARCH_VALUE}"
-binary_name="task"
+base_name="grind_${VERSION_VALUE}_${GOOS_VALUE}_${GOARCH_VALUE}"
+binary_name="grind"
 archive_path=""
 
 if [[ "${GOOS_VALUE}" == "windows" ]]; then
-  binary_name="task.exe"
+  binary_name="grind.exe"
 fi
 
 work_dir="$(mktemp -d)"
@@ -37,7 +37,7 @@ CGO_ENABLED=0 GOOS="${GOOS_VALUE}" GOARCH="${GOARCH_VALUE}" \
   -trimpath \
   -ldflags "-s -w -X main.version=${VERSION_VALUE} -X main.commit=${COMMIT_VALUE} -X main.date=${DATE_VALUE}" \
   -o "${binary_path}" \
-  ./cmd/task
+  ./cmd/grind
 
 cp LICENSE "${work_dir}/LICENSE"
 cp README.md "${work_dir}/README.md"

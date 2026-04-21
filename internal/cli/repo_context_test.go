@@ -12,15 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
-	"github.com/H4ZM47/task-cli/internal/gitctx"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
+	"github.com/H4ZM47/grind/internal/gitctx"
 )
 
 func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.T) {
 	dbPath, taskHandle := seedClaimedTaskForRepoContextCLI(t)
-	repoDir := initCLIRepo(t, "https://github.com/H4ZM47/task-cli.git")
+	repoDir := initCLIRepo(t, "https://github.com/H4ZM47/grind.git")
 	current := detectRepoContext(t, repoDir)
 
 	var stdout bytes.Buffer
@@ -38,7 +38,7 @@ func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.
 		})
 
 		if err := root.Execute(); err != nil {
-			t.Fatalf("task link attach-current-repo Execute() error = %v; stderr=%q", err, stderr.String())
+			t.Fatalf("grind link attach-current-repo Execute() error = %v; stderr=%q", err, stderr.String())
 		}
 	})
 
@@ -70,7 +70,7 @@ func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task link attach-current-repo"; got != want {
+	if got, want := payload.Command, "grind link attach-current-repo"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if payload.Data.RepoLink == nil {
@@ -119,7 +119,7 @@ func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.
 }
 
 func TestTaskListHereJSONScopesToCurrentRepoContextWithoutMutation(t *testing.T) {
-	currentRepoDir := initCLIRepo(t, "https://github.com/H4ZM47/task-cli.git")
+	currentRepoDir := initCLIRepo(t, "https://github.com/H4ZM47/grind.git")
 	otherRepoDir := initCLIRepo(t, "https://github.com/example/other.git")
 	current := detectRepoContext(t, currentRepoDir)
 	other := detectRepoContext(t, otherRepoDir)
@@ -153,7 +153,7 @@ func TestTaskListHereJSONScopesToCurrentRepoContextWithoutMutation(t *testing.T)
 		})
 
 		if err := root.Execute(); err != nil {
-			t.Fatalf("task list --here Execute() error = %v; stderr=%q", err, stderr.String())
+			t.Fatalf("grind list --here Execute() error = %v; stderr=%q", err, stderr.String())
 		}
 	})
 
@@ -180,7 +180,7 @@ func TestTaskListHereJSONScopesToCurrentRepoContextWithoutMutation(t *testing.T)
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task list"; got != want {
+	if got, want := payload.Command, "grind list"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if !payload.Meta.Filters.Here {
@@ -199,11 +199,11 @@ func TestTaskListHereJSONScopesToCurrentRepoContextWithoutMutation(t *testing.T)
 	wantHandles := []string{repoOnlyHandle, worktreeOnlyHandle}
 	slices.Sort(wantHandles)
 	if !slices.Equal(handles, wantHandles) {
-		t.Fatalf("task list --here handles = %v, want %v", handles, wantHandles)
+		t.Fatalf("grind list --here handles = %v, want %v", handles, wantHandles)
 	}
 	for _, handle := range handles {
 		if handle == unrelatedHandle {
-			t.Fatalf("task list --here included unrelated handle %q", unrelatedHandle)
+			t.Fatalf("grind list --here included unrelated handle %q", unrelatedHandle)
 		}
 	}
 
@@ -211,13 +211,13 @@ func TestTaskListHereJSONScopesToCurrentRepoContextWithoutMutation(t *testing.T)
 		t.Fatalf("countExternalLinks() after list = %d, want %d", got, want)
 	}
 	if got, want := len(listExternalLinksForTask(t, dbPath, repoOnlyHandle)), beforeRepoOnly; got != want {
-		t.Fatalf("repo-only task link count after list = %d, want %d", got, want)
+		t.Fatalf("repo-only grind link count after list = %d, want %d", got, want)
 	}
 	if got, want := len(listExternalLinksForTask(t, dbPath, worktreeOnlyHandle)), beforeWorktreeOnly; got != want {
-		t.Fatalf("worktree-only task link count after list = %d, want %d", got, want)
+		t.Fatalf("worktree-only grind link count after list = %d, want %d", got, want)
 	}
 	if got, want := len(listExternalLinksForTask(t, dbPath, unrelatedHandle)), beforeUnrelated; got != want {
-		t.Fatalf("unrelated task link count after list = %d, want %d", got, want)
+		t.Fatalf("unrelated grind link count after list = %d, want %d", got, want)
 	}
 }
 

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -44,8 +44,8 @@ type viewFilterFlags struct {
 func (f *viewFilterFlags) bind(cmd *cobra.Command) {
 	cmd.Flags().StringArrayVar(&f.statuses, "status", nil, "Filter by task status; repeat to allow multiple statuses")
 	cmd.Flags().StringArrayVar(&f.tags, "tag", nil, "Filter by task tag; repeat to require multiple tags")
-	cmd.Flags().StringVar(&f.domain, "domain", "", "Filter by task domain reference")
-	cmd.Flags().StringVar(&f.project, "project", "", "Filter by task project reference")
+	cmd.Flags().StringVar(&f.domain, "domain", "", "Filter by grind domain reference")
+	cmd.Flags().StringVar(&f.project, "project", "", "Filter by grind project reference")
 	cmd.Flags().StringVar(&f.assignee, "assignee", "", "Filter by task assignee reference")
 	cmd.Flags().StringVar(&f.dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
 	cmd.Flags().StringVar(&f.dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
@@ -110,7 +110,7 @@ func newViewCreateCommand(opts *GlobalOptions) *cobra.Command {
 				return err
 			}
 
-			return emitViewPayload(cmd, opts, "task view create", view)
+			return emitViewPayload(cmd, opts, "grind view create", view)
 		},
 	}
 	filters.bind(cmd)
@@ -148,7 +148,7 @@ func newViewUpdateCommand(opts *GlobalOptions) *cobra.Command {
 				return err
 			}
 
-			return emitViewPayload(cmd, opts, "task view update", view)
+			return emitViewPayload(cmd, opts, "grind view update", view)
 		},
 	}
 	filters.bind(cmd)
@@ -178,7 +178,7 @@ func newViewListCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task view list",
+					"command": "grind view list",
 					"data":    map[string]any{"items": views},
 					"meta":    map[string]any{"count": len(views)},
 				})
@@ -213,7 +213,7 @@ func newViewShowCommand(opts *GlobalOptions) *cobra.Command {
 				return err
 			}
 
-			return emitViewPayload(cmd, opts, "task view show", view)
+			return emitViewPayload(cmd, opts, "grind view show", view)
 		},
 	}
 }
@@ -245,7 +245,7 @@ func newViewApplyCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task view apply",
+					"command": "grind view apply",
 					"data":    map[string]any{"items": tasks},
 					"meta": map[string]any{
 						"count": len(tasks),
@@ -285,7 +285,7 @@ func newViewDeleteCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task view delete",
+					"command": "grind view delete",
 					"data":    map[string]any{"name": args[0]},
 					"meta":    map[string]any{},
 				})

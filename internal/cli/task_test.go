@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 func TestTaskUpdateNoInputRequiresExplicitAssigneeDecision(t *testing.T) {
@@ -128,7 +128,7 @@ func TestTaskListJSONIncludesFiltersAndSearch(t *testing.T) {
 		t.Fatalf("CreateDomain() error = %v", err)
 	}
 	project, err := projectManager.Create(context.Background(), app.CreateProjectRequest{
-		Name:      "Task CLI",
+		Name:      "Grind",
 		DomainRef: domain.Handle,
 	})
 	if err != nil {
@@ -217,7 +217,7 @@ func TestTaskListJSONIncludesFiltersAndSearch(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
 		t.Fatalf("json.Unmarshal() error = %v; stdout=%q", err, stdout.String())
 	}
-	if got, want := payload.Command, "task list"; got != want {
+	if got, want := payload.Command, "grind list"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Meta.Count, 1; got != want {

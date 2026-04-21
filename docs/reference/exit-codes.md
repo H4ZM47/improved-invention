@@ -5,7 +5,7 @@ Status: Initial v1 exit-code map
 
 ## Purpose
 
-Task CLI v1 uses explicit, granular exit codes so humans, scripts, and agents can distinguish validation failures, lock conflicts, missing records, storage faults, and internal errors without scraping stderr text.
+Grind v1 uses explicit, granular exit codes so humans, scripts, and agents can distinguish validation failures, lock conflicts, missing records, storage faults, and internal errors without scraping stderr text.
 
 The exit-code map is part of the CLI contract. Human-readable messages may improve over time, but the semantic meaning of these codes should remain stable once released.
 

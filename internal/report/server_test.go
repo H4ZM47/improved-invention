@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 func TestServerTaskListHTMLRendersFilteredTasks(t *testing.T) {
@@ -35,13 +35,13 @@ func TestServerTaskListHTMLRendersFilteredTasks(t *testing.T) {
 
 	body := readBody(t, res)
 	if !strings.Contains(body, "Write CLI contract") {
-		t.Fatalf("task list HTML missing filtered task:\n%s", body)
+		t.Fatalf("grind list HTML missing filtered task:\n%s", body)
 	}
 	if strings.Contains(body, "Routine docs") {
-		t.Fatalf("task list HTML included non-matching task:\n%s", body)
+		t.Fatalf("grind list HTML included non-matching task:\n%s", body)
 	}
 	if !strings.Contains(body, `value="contract"`) {
-		t.Fatalf("task list HTML did not preserve search input:\n%s", body)
+		t.Fatalf("grind list HTML did not preserve search input:\n%s", body)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "task report api tasks"; got != want {
+	if got, want := payload.Command, "grind report api tasks"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Meta.Count, 1; got != want {

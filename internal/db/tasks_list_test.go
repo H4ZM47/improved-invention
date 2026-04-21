@@ -44,7 +44,7 @@ func TestListTasksSupportsFieldTagAndSearchFilters(t *testing.T) {
 
 	db := openTestDB(t)
 	domainID := insertDomain(t, db, "domain-1", "DOM-1", "Work")
-	projectID := insertProjectFixture(t, db, "project-1", "PROJ-1", "Task CLI", domainID)
+	projectID := insertProjectFixture(t, db, "project-1", "PROJ-1", "Grind", domainID)
 	assigneeID := insertActor(t, db, "actor-1", "ACT-1", "human", "", "alex")
 
 	insertTask(t, db, "task-1", "TASK-1", "Write CLI contract", domainID, projectID)
@@ -95,14 +95,14 @@ func TestListTasksSupportsRepoAndWorktreeContextFilters(t *testing.T) {
 	if _, err := db.Exec(`
 		INSERT INTO external_links(uuid, task_id, link_type, target, label)
 		VALUES
-		  ('link-1', ?, 'repo', 'https://github.com/H4ZM47/task-cli.git', 'repo'),
+		  ('link-1', ?, 'repo', 'https://github.com/H4ZM47/grind.git', 'repo'),
 		  ('link-2', ?, 'worktree', '/Users/alex/task', 'worktree')
 	`, attachedID, attachedID); err != nil {
 		t.Fatalf("seed external links failed: %v", err)
 	}
 
 	items, err := ListTasks(context.Background(), db, TaskListQuery{
-		RepoTarget:     stringPointer("https://github.com/H4ZM47/task-cli.git"),
+		RepoTarget:     stringPointer("https://github.com/H4ZM47/grind.git"),
 		WorktreeTarget: stringPointer("/Users/alex/task"),
 	})
 	if err != nil {

@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ func newRestoreApplyCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task restore apply",
+					"command": "grind restore apply",
 					"data": map[string]any{
 						"input_path": input,
 						"db_path":    cfg.DBPath,

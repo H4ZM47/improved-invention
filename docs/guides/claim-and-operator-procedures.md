@@ -15,7 +15,7 @@ Claims are exclusive task locks.
 Inspect the current lease setting:
 
 ```sh
-task config show --json
+grind config show --json
 ```
 
 ## Normal Claim Lifecycle
@@ -23,24 +23,24 @@ task config show --json
 Acquire a claim:
 
 ```sh
-task claim TASK-1 --actor codex:agent-7 --no-input --json
+grind claim TASK-1 --actor codex:agent-7 --no-input --json
 ```
 
 Renew a claim before expiry:
 
 ```sh
-task renew TASK-1 --actor codex:agent-7 --no-input --json
+grind renew TASK-1 --actor codex:agent-7 --no-input --json
 ```
 
 Release the claim when work is complete or handed off:
 
 ```sh
-task release TASK-1 --actor codex:agent-7 --no-input --json
+grind release TASK-1 --actor codex:agent-7 --no-input --json
 ```
 
 ## When To Use Manual Unlock
 
-Use `task unlock` only when the normal holder cannot release the task:
+Use `grind unlock` only when the normal holder cannot release the task:
 
 - the agent process crashed
 - the human or agent is gone and the lease cannot wait
@@ -50,7 +50,7 @@ Use `task unlock` only when the normal holder cannot release the task:
 Command:
 
 ```sh
-task unlock TASK-1 --json
+grind unlock TASK-1 --json
 ```
 
 Manual unlock is intentionally separate from normal release because it overrides the current holder.
@@ -67,9 +67,9 @@ Before unlocking:
 Useful commands:
 
 ```sh
-task show TASK-1 --json
-task actor show ACT-2 --json
-task list --status active --json
+grind show TASK-1 --json
+grind actor show ACT-2 --json
+grind list --status active --json
 ```
 
 ## Expiry Behavior
@@ -101,11 +101,11 @@ Agents:
 
 Recommended response:
 
-1. `task show TASK-1 --json`
+1. `grind show TASK-1 --json`
 2. decide whether the holder is still active
 3. if active, wait or coordinate
 4. if stale but recoverable, let the holder release or renew
-5. if stale and blocking, `task unlock TASK-1 --json`
+5. if stale and blocking, `grind unlock TASK-1 --json`
 6. new worker claims the task normally
 
 That keeps the audit history clear and avoids bypassing the claim system for convenience.

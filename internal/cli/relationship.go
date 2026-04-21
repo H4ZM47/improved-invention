@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +45,7 @@ func newRelationshipAddCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task relationship add",
+					"command": "grind relationship add",
 					"data": map[string]any{
 						"relationship": relationship,
 					},
@@ -79,7 +79,7 @@ func newRelationshipListCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task relationship list",
+					"command": "grind relationship list",
 					"data": map[string]any{
 						"items": items,
 					},
@@ -122,7 +122,7 @@ func newRelationshipRemoveCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task relationship remove",
+					"command": "grind relationship remove",
 					"data":    map[string]any{},
 					"meta":    map[string]any{},
 				})

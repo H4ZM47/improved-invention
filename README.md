@@ -1,8 +1,8 @@
-# Task CLI
+# Grind
 
 Local-first task management for humans and AI agents.
 
-[GitHub Releases](https://github.com/H4ZM47/task-cli/releases) • [CLI Contract](docs/reference/cli-contract.md) • [Human Quickstart](docs/guides/human-cli-quickstart.md) • [Agent Integration](docs/guides/agent-integration.md)
+[GitHub Releases](https://github.com/H4ZM47/grind/releases) • [CLI Contract](docs/reference/cli-contract.md) • [Human Quickstart](docs/guides/human-cli-quickstart.md) • [Agent Integration](docs/guides/agent-integration.md)
 
 ## Why it exists
 
@@ -11,7 +11,7 @@ Most task tools assume either:
 - a human clicking around in a UI
 - or an automation scraping output that was never meant to be stable
 
-Task CLI is designed for a different environment: one local machine, one human user, and many short-lived agents sharing the same source of truth. It gives both humans and agents the same interface over a local SQLite database.
+Grind is designed for a different environment: one local machine, one human user, and many short-lived agents sharing the same source of truth. It gives both humans and agents the same interface over a local SQLite database.
 
 ## What you get
 
@@ -27,7 +27,7 @@ Task CLI is designed for a different environment: one local machine, one human u
 
 ## Install
 
-Release assets are published on [GitHub Releases](https://github.com/H4ZM47/task-cli/releases).
+Release assets are published on [GitHub Releases](https://github.com/H4ZM47/grind/releases).
 
 Each release includes:
 
@@ -41,37 +41,37 @@ Each release includes:
 
 1. Download the asset for your platform from the latest release.
 2. Extract it.
-3. Put `task` on your `PATH`.
+3. Put `grind` on your `PATH`.
 
 Example:
 
 ```sh
-task version
-task config show
+grind version
+grind config show
 ```
 
 ### Homebrew
 
-Task CLI is published through the `H4ZM47/task` tap.
+Grind is published through the `H4ZM47/grind` tap.
 
 Recommended install flow:
 
 ```sh
-brew tap H4ZM47/task
-brew install task
+brew tap H4ZM47/grind
+brew install grind
 ```
 
 Direct install also works:
 
 ```sh
-brew install H4ZM47/task/task
+brew install H4ZM47/grind/grind
 ```
 
 ### Package-manager outputs
 
 The repo also generates release metadata for:
 
-- Homebrew via the `H4ZM47/task` tap
+- Homebrew via the `H4ZM47/grind` tap
 - winget via release-ready manifests
 - Debian and RPM package artifacts
 
@@ -84,32 +84,32 @@ Those artifacts are attached to the GitHub release as packaging inputs, not hidd
 Capture a task:
 
 ```sh
-task create "Draft release notes"
+grind create "Draft release notes"
 ```
 
 Claim it before mutating it:
 
 ```sh
-task claim TASK-1
-task update TASK-1 --status active
+grind claim TASK-1
+grind update TASK-1 --status active
 ```
 
 Track progress:
 
 ```sh
-task start TASK-1
-task pause TASK-1
-task resume TASK-1
-task close TASK-1 --status completed
+grind start TASK-1
+grind pause TASK-1
+grind resume TASK-1
+grind close TASK-1 --status completed
 ```
 
 Find work again later:
 
 ```sh
-task list --status backlog --tag docs
-task list --search release
-task view create docs-backlog --status backlog --tag docs
-task view apply docs-backlog
+grind list --status backlog --tag docs
+grind list --search release
+grind view create docs-backlog --status backlog --tag docs
+grind view apply docs-backlog
 ```
 
 ### Agent flow
@@ -117,9 +117,9 @@ task view apply docs-backlog
 Agents should always use explicit non-interactive calls:
 
 ```sh
-task list --status backlog --json --actor codex:agent-7
-task claim TASK-1 --json --no-input --actor codex:agent-7
-task update TASK-1 --status active --json --no-input --actor codex:agent-7
+grind list --status backlog --json --actor codex:agent-7
+grind claim TASK-1 --json --no-input --actor codex:agent-7
+grind update TASK-1 --status active --json --no-input --actor codex:agent-7
 ```
 
 That contract is documented in:
@@ -165,18 +165,18 @@ Actors represent humans and agents.
 
 ## Commands at a glance
 
-The root command is `task`.
+The root command is `grind`.
 
 Common commands:
 
-- `task create`, `task list`, `task show`, `task update`
-- `task claim`, `task renew`, `task release`, `task unlock`
-- `task start`, `task pause`, `task resume`, `task time add`, `task time edit`, `task close`
-- `task domain ...`, `task project ...`, `task actor ...`
-- `task relationship ...`, `task link ...`
-- `task view ...`, `task export ...`, `task report serve`
-- `task backup create`, `task restore apply`
-- `task config show`, `task version`
+- `grind create`, `grind list`, `grind show`, `grind update`
+- `grind claim`, `grind renew`, `grind release`, `grind unlock`
+- `grind start`, `grind pause`, `grind resume`, `grind time add`, `grind time edit`, `grind close`
+- `grind domain ...`, `grind project ...`, `grind actor ...`
+- `grind relationship ...`, `grind link ...`
+- `grind view ...`, `grind export ...`, `grind report serve`
+- `grind backup create`, `grind restore apply`
+- `grind config show`, `grind version`
 
 Global flags:
 
@@ -190,28 +190,28 @@ For the full tree, see [CLI Surface](docs/reference/cli-surface.md).
 
 ## Reporting, export, and backup
 
-Task CLI gives you three different read/portability paths:
+Grind gives you three different read/portability paths:
 
 | Tool | Use it when |
 | --- | --- |
-| `task export ...` | you want JSON, CSV, TXT, or Markdown output |
-| `task report serve` | you want a local read-only browser view |
-| `task backup create` / `task restore apply` | you want full-fidelity move or recovery |
+| `grind export ...` | you want JSON, CSV, TXT, or Markdown output |
+| `grind report serve` | you want a local read-only browser view |
+| `grind backup create` / `grind restore apply` | you want full-fidelity move or recovery |
 
 Examples:
 
 ```sh
-task export json --output tasks.json
-task report serve --addr 127.0.0.1:8080
-task backup create --output task-backup.sqlite
+grind export json --output tasks.json
+grind report serve --addr 127.0.0.1:8080
+grind backup create --output grind-backup.sqlite
 ```
 
 ## Local repo awareness
 
 When you run the CLI inside a git repo or worktree, it can help without mutating task data implicitly.
 
-- `task list --here` filters to tasks linked to the current repo/worktree
-- `task link attach-current-repo TASK-1` explicitly records the current repo/worktree context
+- `grind list --here` filters to tasks linked to the current repo/worktree
+- `grind link attach-current-repo TASK-1` explicitly records the current repo/worktree context
 
 That keeps repo-aware workflows useful for humans and agents without hidden writes.
 
@@ -249,7 +249,7 @@ That script:
 To sync the generated Homebrew formula into a tap checkout:
 
 ```sh
-HOMEBREW_TAP_DIR=/path/to/homebrew-task ./scripts/sync-homebrew-tap.sh
+HOMEBREW_TAP_DIR=/path/to/homebrew-grind ./scripts/sync-homebrew-tap.sh
 ```
 
 ## Documentation
@@ -272,7 +272,7 @@ HOMEBREW_TAP_DIR=/path/to/homebrew-task ./scripts/sync-homebrew-tap.sh
 
 ### Design and implementation
 
-- [Task CLI Design](docs/superpowers/specs/2026-04-20-task-cli-design.md)
+- [Grind Design](docs/superpowers/specs/2026-04-20-grind-design.md)
 - [V1 Implementation Stack](docs/engineering/v1-implementation-stack.md)
 - [Testing Guide](docs/engineering/testing.md)
 

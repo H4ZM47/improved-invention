@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 // TaskManager provides the service-layer task workflows used by commands.

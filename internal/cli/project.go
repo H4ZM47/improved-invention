@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ func newProjectCreateCommand(opts *GlobalOptions) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if domain == "" {
-				return fmt.Errorf("task project create requires --domain")
+				return fmt.Errorf("grind project create requires --domain")
 			}
 
 			_, db, manager, err := projectManagerFromOptions(cmd.Context(), opts)
@@ -62,7 +62,7 @@ func newProjectCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task project create",
+					"command": "grind project create",
 					"data": map[string]any{
 						"project": project,
 					},
@@ -104,7 +104,7 @@ func newProjectListCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task project list",
+					"command": "grind project list",
 					"data": map[string]any{
 						"items": items,
 					},
@@ -144,7 +144,7 @@ func newProjectShowCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task project show",
+					"command": "grind project show",
 					"data": map[string]any{
 						"project": project,
 					},
@@ -207,7 +207,7 @@ func newProjectUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			}
 
 			if req.Name == nil && req.Description == nil && req.DomainRef == nil && req.DefaultAssigneeRef == nil && req.AssigneeRef == nil && req.DueAt == nil && req.Tags == nil && req.Status == nil {
-				return fmt.Errorf("task project update requires at least one changed field")
+				return fmt.Errorf("grind project update requires at least one changed field")
 			}
 
 			project, err := manager.Update(cmd.Context(), req)
@@ -218,7 +218,7 @@ func newProjectUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task project update",
+					"command": "grind project update",
 					"data": map[string]any{
 						"project": project,
 					},
@@ -271,7 +271,7 @@ func newProjectCloseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task project close",
+					"command": "grind project close",
 					"data": map[string]any{
 						"project": project,
 					},

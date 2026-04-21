@@ -10,7 +10,7 @@ Failed machine-readable responses use a stable top-level envelope:
 ```json
 {
   "ok": false,
-  "command": "task show",
+  "command": "grind show",
   "error": {
     "code": "ENTITY_NOT_FOUND",
     "exit_code": 20,
@@ -34,7 +34,7 @@ Failed machine-readable responses use a stable top-level envelope:
 Command:
 
 ```text
-task show TASK-404 --json
+grind show TASK-404 --json
 ```
 
 Exit code:
@@ -48,7 +48,7 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "task show",
+  "command": "grind show",
   "error": {
     "code": "ENTITY_NOT_FOUND",
     "exit_code": 20,
@@ -66,7 +66,7 @@ Payload:
 Command:
 
 ```text
-task claim TASK-1042 --actor codex:agent-9 --json
+grind claim TASK-1042 --actor codex:agent-9 --json
 ```
 
 Exit code:
@@ -80,7 +80,7 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "task claim",
+  "command": "grind claim",
   "error": {
     "code": "CLAIM_CONFLICT",
     "exit_code": 31,
@@ -103,7 +103,7 @@ Payload:
 Command:
 
 ```text
-task update TASK-1042 --project PROJ-18 --no-input --json
+grind update TASK-1042 --project PROJ-18 --no-input --json
 ```
 
 Exit code:
@@ -117,7 +117,7 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "task update",
+  "command": "grind update",
   "error": {
     "code": "ASSIGNMENT_DECISION_REQUIRED",
     "exit_code": 44,
@@ -140,7 +140,7 @@ Payload:
 Command:
 
 ```text
-task close TASK-1042 --status backlog --json
+grind close TASK-1042 --status backlog --json
 ```
 
 Exit code:
@@ -154,7 +154,7 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "task close",
+  "command": "grind close",
   "error": {
     "code": "INVALID_STATUS_TRANSITION",
     "exit_code": 40,
@@ -176,7 +176,7 @@ Payload:
 Command:
 
 ```text
-task update TASK-1042 --title "New title" --json
+grind update TASK-1042 --title "New title" --json
 ```
 
 Exit code:
@@ -190,7 +190,7 @@ Payload:
 ```json
 {
   "ok": false,
-  "command": "task update",
+  "command": "grind update",
   "error": {
     "code": "DATABASE_BUSY",
     "exit_code": 81,

@@ -34,7 +34,7 @@ type Resolved struct {
 	SourceOrder []string
 }
 
-// Resolve computes Task CLI runtime configuration from explicit overrides,
+// Resolve computes Grind runtime configuration from explicit overrides,
 // environment variables, and OS-specific defaults.
 func Resolve(opts Options) (Resolved, error) {
 	lookupEnv := opts.LookupEnv
@@ -57,25 +57,25 @@ func Resolve(opts Options) (Resolved, error) {
 		return Resolved{}, fmt.Errorf("resolve user config dir: %w", err)
 	}
 
-	dataDir := filepath.Join(configDir, "task")
-	if envValue, ok := lookupEnv("TASK_DATA_DIR"); ok && envValue != "" {
+	dataDir := filepath.Join(configDir, "grind")
+	if envValue := envStringMulti(lookupEnv, "GRIND_DATA_DIR", "TASK_DATA_DIR"); envValue != "" {
 		dataDir = envValue
 	}
 
-	dbPath := filepath.Join(dataDir, "task.db")
+	dbPath := filepath.Join(dataDir, "grind.db")
 	switch {
 	case opts.DBPathOverride != "":
 		dbPath = opts.DBPathOverride
-	case envString(lookupEnv, "TASK_DB_PATH") != "":
-		dbPath = envString(lookupEnv, "TASK_DB_PATH")
+	case envStringMulti(lookupEnv, "GRIND_DB_PATH", "TASK_DB_PATH") != "":
+		dbPath = envStringMulti(lookupEnv, "GRIND_DB_PATH", "TASK_DB_PATH")
 	}
 
-	actor := envString(lookupEnv, "TASK_ACTOR")
+	actor := envStringMulti(lookupEnv, "GRIND_ACTOR", "TASK_ACTOR")
 	if opts.ActorOverride != "" {
 		actor = opts.ActorOverride
 	}
 
-	humanName := envString(lookupEnv, "TASK_HUMAN_NAME")
+	humanName := envStringMulti(lookupEnv, "GRIND_HUMAN_NAME", "TASK_HUMAN_NAME")
 	if humanName == "" {
 		current, err := currentUser()
 		if err == nil && current != nil && current.Username != "" {
@@ -87,19 +87,19 @@ func Resolve(opts Options) (Resolved, error) {
 	}
 
 	busyTimeout := defaultBusyTimeout
-	if raw := envString(lookupEnv, "TASK_BUSY_TIMEOUT_MS"); raw != "" {
+	if raw := envStringMulti(lookupEnv, "GRIND_BUSY_TIMEOUT_MS", "TASK_BUSY_TIMEOUT_MS"); raw != "" {
 		ms, err := strconv.Atoi(raw)
 		if err != nil || ms <= 0 {
-			return Resolved{}, fmt.Errorf("parse TASK_BUSY_TIMEOUT_MS: %q is invalid", raw)
+			return Resolved{}, fmt.Errorf("parse GRIND_BUSY_TIMEOUT_MS: %q is invalid", raw)
 		}
 		busyTimeout = time.Duration(ms) * time.Millisecond
 	}
 
 	claimLease := defaultClaimLease
-	if raw := envString(lookupEnv, "TASK_CLAIM_LEASE_HOURS"); raw != "" {
+	if raw := envStringMulti(lookupEnv, "GRIND_CLAIM_LEASE_HOURS", "TASK_CLAIM_LEASE_HOURS"); raw != "" {
 		hours, err := strconv.Atoi(raw)
 		if err != nil || hours <= 0 {
-			return Resolved{}, fmt.Errorf("parse TASK_CLAIM_LEASE_HOURS: %q is invalid", raw)
+			return Resolved{}, fmt.Errorf("parse GRIND_CLAIM_LEASE_HOURS: %q is invalid", raw)
 		}
 		claimLease = time.Duration(hours) * time.Hour
 	}
@@ -125,4 +125,13 @@ func envString(lookup func(string) (string, bool), key string) string {
 		return ""
 	}
 	return value
+}
+
+func envStringMulti(lookup func(string) (string, bool), keys ...string) string {
+	for _, key := range keys {
+		if value := envString(lookup, key); value != "" {
+			return value
+		}
+	}
+	return ""
 }

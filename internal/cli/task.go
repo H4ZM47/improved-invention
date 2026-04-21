@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/H4ZM47/task-cli/internal/app"
-	taskconfig "github.com/H4ZM47/task-cli/internal/config"
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
-	"github.com/H4ZM47/task-cli/internal/gitctx"
+	"github.com/H4ZM47/grind/internal/app"
+	taskconfig "github.com/H4ZM47/grind/internal/config"
+	taskdb "github.com/H4ZM47/grind/internal/db"
+	"github.com/H4ZM47/grind/internal/gitctx"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +53,7 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task create",
+					"command": "grind create",
 					"data": map[string]any{
 						"task": task,
 					},
@@ -70,8 +70,8 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 
 	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
-	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
-	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
+	cmd.Flags().StringVar(&domain, "domain", "", "Set the grind domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Set the grind project reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	return cmd
@@ -157,7 +157,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 				}
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task list",
+					"command": "grind list",
 					"data": map[string]any{
 						"items": items,
 					},
@@ -179,8 +179,8 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 
 	cmd.Flags().StringArrayVar(&statuses, "status", nil, "Filter by task status; repeat to allow multiple statuses")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Filter by task tag; repeat to require multiple tags")
-	cmd.Flags().StringVar(&domain, "domain", "", "Filter by task domain reference")
-	cmd.Flags().StringVar(&project, "project", "", "Filter by task project reference")
+	cmd.Flags().StringVar(&domain, "domain", "", "Filter by grind domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Filter by grind project reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Filter by task assignee reference")
 	cmd.Flags().StringVar(&dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
 	cmd.Flags().StringVar(&dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
@@ -210,7 +210,7 @@ func newTaskShowCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task show",
+					"command": "grind show",
 					"data": map[string]any{
 						"task": task,
 					},
@@ -255,10 +255,10 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			defer db.Close()
 
 			if keepAssignee && acceptDefaultAssignee {
-				return fmt.Errorf("task update allows only one of --keep-assignee or --accept-default-assignee")
+				return fmt.Errorf("grind update allows only one of --keep-assignee or --accept-default-assignee")
 			}
 			if cmd.Flags().Changed("assignee") && (keepAssignee || acceptDefaultAssignee) {
-				return fmt.Errorf("task update allows only one explicit assignee decision")
+				return fmt.Errorf("grind update allows only one explicit assignee decision")
 			}
 
 			req := app.UpdateTaskRequest{Reference: args[0]}
@@ -291,7 +291,7 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			req.KeepAssignee = keepAssignee
 
 			if req.Title == nil && req.Description == nil && req.Tags == nil && req.DomainRef == nil && req.ProjectRef == nil && req.AssigneeRef == nil && req.DueAt == nil && req.Status == nil && !req.AcceptDefaultAssignee && !req.KeepAssignee {
-				return fmt.Errorf("task update requires at least one changed field")
+				return fmt.Errorf("grind update requires at least one changed field")
 			}
 
 			task, err := manager.Update(cmd.Context(), req)
@@ -318,7 +318,7 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task update",
+					"command": "grind update",
 					"data": map[string]any{
 						"task": task,
 					},
@@ -334,8 +334,8 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&title, "title", "", "Set the task title")
 	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
-	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
-	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
+	cmd.Flags().StringVar(&domain, "domain", "", "Set the grind domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Set the grind project reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	cmd.Flags().StringVar(&status, "status", "", "Set the task status")
@@ -348,7 +348,7 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "claim <task-ref>",
-		Short: "Acquire a task claim",
+		Short: "Acquire a grind claim",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
@@ -368,7 +368,7 @@ func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task claim",
+					"command": "grind claim",
 					"data": map[string]any{
 						"claim": claim,
 					},
@@ -385,7 +385,7 @@ func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "renew <task-ref>",
-		Short: "Renew an active task claim",
+		Short: "Renew an active grind claim",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
@@ -405,7 +405,7 @@ func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task renew",
+					"command": "grind renew",
 					"data": map[string]any{
 						"claim": claim,
 					},
@@ -441,7 +441,7 @@ func newTaskStartCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task start",
+					"command": "grind start",
 					"data": map[string]any{
 						"session": session,
 					},
@@ -477,7 +477,7 @@ func newTaskPauseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task pause",
+					"command": "grind pause",
 					"data": map[string]any{
 						"session": session,
 					},
@@ -513,7 +513,7 @@ func newTaskResumeCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task resume",
+					"command": "grind resume",
 					"data": map[string]any{
 						"session": session,
 					},
@@ -530,7 +530,7 @@ func newTaskResumeCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "release <task-ref>",
-		Short: "Release an active task claim",
+		Short: "Release an active grind claim",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
@@ -546,7 +546,7 @@ func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task release",
+					"command": "grind release",
 					"data":    map[string]any{},
 					"meta":    map[string]any{},
 				})
@@ -577,7 +577,7 @@ func newTaskUnlockCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task unlock",
+					"command": "grind unlock",
 					"data":    map[string]any{},
 					"meta":    map[string]any{},
 				})
@@ -618,7 +618,7 @@ func newTaskCloseCommand(opts *GlobalOptions) *cobra.Command {
 			if opts.JSON {
 				return writeJSON(cmd, map[string]any{
 					"ok":      true,
-					"command": "task close",
+					"command": "grind close",
 					"data": map[string]any{
 						"task": task,
 					},

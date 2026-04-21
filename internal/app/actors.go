@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	taskdb "github.com/H4ZM47/grind/internal/db"
 )
 
 // ActorManager provides the service-layer actor workflows used by commands.
