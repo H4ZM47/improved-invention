@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,11 +16,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
+func TestTaskTimeEditCreatesEntryInteractively(t *testing.T) {
 	t.Parallel()
 
 	dbPath, taskHandle := seedClaimedTaskForManualTimeCLI(t)
-	requireCommandPath(t, NewRootCommand(BuildInfo{}), "time", "add")
+	requireCommandPath(t, NewRootCommand(BuildInfo{}), "time", "edit")
 
 	startedAt := time.Date(2026, time.April, 21, 9, 0, 0, 0, time.UTC)
 	var stdout bytes.Buffer
@@ -28,18 +29,16 @@ func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
 	root := NewRootCommand(BuildInfo{})
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
+	root.SetIn(strings.NewReader(startedAt.Format(time.RFC3339) + "\n45m\nImported from calendar\n"))
 	root.SetArgs([]string{
 		"--db", dbPath,
 		"--actor", "alex",
 		"--json",
-		"time", "add", taskHandle,
-		"--started-at", startedAt.Format(time.RFC3339),
-		"--duration", "45m",
-		"--note", "Imported from calendar",
+		"time", "edit", taskHandle,
 	})
 
 	if err := root.Execute(); err != nil {
-		t.Fatalf("grind time add Execute() error = %v; stderr=%q", err, stderr.String())
+		t.Fatalf("grind time edit Execute() error = %v; stderr=%q", err, stderr.String())
 	}
 
 	var payload struct {
@@ -54,6 +53,9 @@ func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
 				Note            string `json:"note"`
 			} `json:"entry"`
 		} `json:"data"`
+		Meta struct {
+			Mode string `json:"mode"`
+		} `json:"meta"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
 		t.Fatalf("json.Unmarshal(stdout) error = %v; stdout=%q", err, stdout.String())
@@ -62,8 +64,11 @@ func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "grind time add"; got != want {
+	if got, want := payload.Command, "grind time edit"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
+	}
+	if got, want := payload.Meta.Mode, "created"; got != want {
+		t.Fatalf("payload.Meta.Mode = %q, want %q", got, want)
 	}
 	if payload.Data.Entry.EntryID == "" {
 		t.Fatal("payload.Data.Entry.EntryID = empty, want generated entry ID")
@@ -85,40 +90,29 @@ func TestTaskTimeAddCommandEndToEnd(t *testing.T) {
 	if got, want := eventPayload["entry_id"].(string), payload.Data.Entry.EntryID; got != want {
 		t.Fatalf("event payload entry_id = %q, want %q", got, want)
 	}
-	if got, want := eventPayload["started_at"].(string), startedAt.Format(time.RFC3339); got != want {
-		t.Fatalf("event payload started_at = %q, want %q", got, want)
-	}
-	if got, want := int64(eventPayload["duration_ms"].(float64)), int64((45*time.Minute)/time.Millisecond); got != want {
-		t.Fatalf("event payload duration_ms = %d, want %d", got, want)
-	}
-	if got, want := eventPayload["note"].(string), "Imported from calendar"; got != want {
-		t.Fatalf("event payload note = %q, want %q", got, want)
-	}
 }
 
-func TestTaskTimeEditCommandEndToEnd(t *testing.T) {
+func TestTaskTimeEditUpdatesEntryInteractively(t *testing.T) {
 	t.Parallel()
 
 	dbPath, taskHandle := seedClaimedTaskForManualTimeCLI(t)
 	requireCommandPath(t, NewRootCommand(BuildInfo{}), "time", "edit")
 
-	entryID := createManualTimeEntryViaCLI(t, dbPath, taskHandle, time.Date(2026, time.April, 21, 9, 0, 0, 0, time.UTC), "30m", "Initial import")
-
+	entryID := createManualTimeEntryViaManager(t, dbPath, taskHandle, time.Date(2026, time.April, 21, 9, 0, 0, 0, time.UTC), 30*time.Minute, "Initial import")
 	updatedStart := time.Date(2026, time.April, 21, 10, 15, 0, 0, time.UTC)
+
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
 	root := NewRootCommand(BuildInfo{})
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
+	root.SetIn(strings.NewReader("1\n" + updatedStart.Format(time.RFC3339) + "\n75m\nCorrected import\n"))
 	root.SetArgs([]string{
 		"--db", dbPath,
 		"--actor", "alex",
 		"--json",
-		"time", "edit", taskHandle, entryID,
-		"--started-at", updatedStart.Format(time.RFC3339),
-		"--duration", "75m",
-		"--note", "Corrected import",
+		"time", "edit", taskHandle,
 	})
 
 	if err := root.Execute(); err != nil {
@@ -137,6 +131,9 @@ func TestTaskTimeEditCommandEndToEnd(t *testing.T) {
 				Note            string `json:"note"`
 			} `json:"entry"`
 		} `json:"data"`
+		Meta struct {
+			Mode string `json:"mode"`
+		} `json:"meta"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
 		t.Fatalf("json.Unmarshal(stdout) error = %v; stdout=%q", err, stdout.String())
@@ -145,14 +142,11 @@ func TestTaskTimeEditCommandEndToEnd(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "grind time edit"; got != want {
-		t.Fatalf("payload.Command = %q, want %q", got, want)
+	if got, want := payload.Meta.Mode, "edited"; got != want {
+		t.Fatalf("payload.Meta.Mode = %q, want %q", got, want)
 	}
 	if got, want := payload.Data.Entry.EntryID, entryID; got != want {
 		t.Fatalf("payload.Data.Entry.EntryID = %q, want %q", got, want)
-	}
-	if got, want := payload.Data.Entry.TaskHandle, taskHandle; got != want {
-		t.Fatalf("payload.Data.Entry.TaskHandle = %q, want %q", got, want)
 	}
 	if got, want := payload.Data.Entry.StartedAt, updatedStart.Format(time.RFC3339); got != want {
 		t.Fatalf("payload.Data.Entry.StartedAt = %q, want %q", got, want)
@@ -168,61 +162,73 @@ func TestTaskTimeEditCommandEndToEnd(t *testing.T) {
 	if got, want := eventPayload["entry_id"].(string), entryID; got != want {
 		t.Fatalf("event payload entry_id = %q, want %q", got, want)
 	}
-	if got, want := eventPayload["started_at"].(string), updatedStart.Format(time.RFC3339); got != want {
-		t.Fatalf("event payload started_at = %q, want %q", got, want)
-	}
-	if got, want := int64(eventPayload["duration_ms"].(float64)), int64((75*time.Minute)/time.Millisecond); got != want {
-		t.Fatalf("event payload duration_ms = %d, want %d", got, want)
-	}
-	if got, want := eventPayload["note"].(string), "Corrected import"; got != want {
-		t.Fatalf("event payload note = %q, want %q", got, want)
-	}
-	if got, want := int64(eventPayload["previous_duration_ms"].(float64)), int64((30*time.Minute)/time.Millisecond); got != want {
-		t.Fatalf("event payload previous_duration_ms = %d, want %d", got, want)
-	}
-	if got, want := eventPayload["previous_note"].(string), "Initial import"; got != want {
-		t.Fatalf("event payload previous_note = %q, want %q", got, want)
-	}
 }
 
-func createManualTimeEntryViaCLI(t *testing.T, dbPath string, taskHandle string, startedAt time.Time, duration string, note string) string {
-	t.Helper()
+func TestTaskTimeEditRejectsNoInput(t *testing.T) {
+	t.Parallel()
 
+	dbPath, taskHandle := seedClaimedTaskForManualTimeCLI(t)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	root := NewRootCommand(BuildInfo{})
-	root.SetOut(&stdout)
-	root.SetErr(&stderr)
-	root.SetArgs([]string{
-		"--db", dbPath,
-		"--actor", "alex",
-		"--json",
-		"time", "add", taskHandle,
-		"--started-at", startedAt.Format(time.RFC3339),
-		"--duration", duration,
-		"--note", note,
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--actor", "alex", "--json", "--no-input", "time", "edit", taskHandle}, &stdout, &stderr)
+	if got, want := exitCode, 11; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "VALIDATION_ERROR"`, "`grind time edit` is interactive-only"}) {
+		t.Fatalf("stdout = %q, want interactive-only validation message", got)
+	}
+}
+
+func TestRetiredTimeAddReturnsGuidance(t *testing.T) {
+	t.Parallel()
+
+	dbPath, taskHandle := seedClaimedTaskForManualTimeCLI(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "time", "add", taskHandle}, &stdout, &stderr)
+	if got, want := exitCode, 10; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_ARGS"`, "`grind time add TASK-1` was removed", "`grind time edit TASK-1`"}) {
+		t.Fatalf("stdout = %q, want migration guidance", got)
+	}
+}
+
+func createManualTimeEntryViaManager(t *testing.T, dbPath string, taskHandle string, startedAt time.Time, duration time.Duration, note string) string {
+	t.Helper()
+
+	cfg := taskconfig.Resolved{
+		DBPath:      dbPath,
+		BusyTimeout: 5 * time.Second,
+	}
+	db, err := taskdb.Open(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("taskdb.Open() error = %v", err)
+	}
+	defer db.Close()
+
+	manager := app.TaskManager{
+		DB:        db,
+		HumanName: "alex",
+	}
+	entry, err := manager.AddManualTime(context.Background(), app.AddManualTimeRequest{
+		Reference: taskHandle,
+		StartedAt: &startedAt,
+		Duration:  duration,
+		Note:      note,
 	})
-
-	if err := root.Execute(); err != nil {
-		t.Fatalf("grind time add Execute() error = %v; stderr=%q", err, stderr.String())
+	if err != nil {
+		t.Fatalf("AddManualTime() error = %v", err)
 	}
-
-	var payload struct {
-		Data struct {
-			Entry struct {
-				EntryID string `json:"entry_id"`
-			} `json:"entry"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(stdout.Bytes(), &payload); err != nil {
-		t.Fatalf("json.Unmarshal(stdout) error = %v; stdout=%q", err, stdout.String())
-	}
-	if payload.Data.Entry.EntryID == "" {
-		t.Fatal("payload.Data.Entry.EntryID = empty, want generated entry ID")
-	}
-
-	return payload.Data.Entry.EntryID
+	return entry.EntryID
 }
 
 func seedClaimedTaskForManualTimeCLI(t *testing.T) (dbPath string, taskHandle string) {

@@ -74,20 +74,13 @@ grind time pause TASK-1
 grind time resume TASK-1
 ```
 
-Add manual time when you need to correct or supplement the session history:
+Use interactive manual time editing when you need to correct or supplement the session history:
 
 ```sh
-grind time add TASK-1 \
-  --started-at 2026-04-21T10:00:00Z \
-  --duration 45m \
-  --note "Drafted launch summary"
+grind time edit TASK-1
 ```
 
-Edit a manual entry by entry ID:
-
-```sh
-grind time edit TASK-1 ENTRY-ID --duration 1h --note "Expanded scope"
-```
+That flow shows existing entries, lets you choose one to edit, and can also add a new manual entry from the same prompt sequence.
 
 ## 5. Organize Tasks
 

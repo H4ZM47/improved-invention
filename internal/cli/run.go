@@ -382,6 +382,8 @@ func normalizeValidationMessage(err error, commandName string) string {
 		return "a task link cannot target the same task"
 	case strings.Contains(msg, "read --description-file"):
 		return msg
+	case strings.Contains(msg, "`grind time edit` is interactive-only"):
+		return "`grind time edit` is interactive-only; omit `--no-input`"
 	case strings.Contains(msg, "invalid task status transition from "):
 		matches := regexp.MustCompile(`invalid task status transition from ([^ ]+) to ([^ ]+)`).FindStringSubmatch(msg)
 		if len(matches) == 3 {
@@ -548,6 +550,7 @@ func isValidationError(err error) bool {
 	return strings.Contains(msg, "requires at least one changed field") ||
 		strings.Contains(msg, "requires changes") ||
 		strings.Contains(msg, "is required") ||
+		strings.Contains(msg, "interactive-only") ||
 		strings.Contains(msg, "read --description-file") ||
 		strings.Contains(msg, "must differ") ||
 		strings.Contains(msg, "already exists") ||

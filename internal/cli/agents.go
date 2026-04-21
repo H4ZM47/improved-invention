@@ -30,7 +30,7 @@ Safe loop:
 Useful commands:
 - grind list --here --json --actor codex:agent-7
 - grind link-repo TASK-1 --json --no-input --actor codex:agent-7
-- grind time add TASK-1 --started-at 2026-04-21T10:00:00Z --duration 30m --json --no-input --actor codex:agent-7
+- agents should not create manual time entries; grind time edit is interactive-only for humans
 - grind link add TASK-1 blocks TASK-2 --json --no-input --actor codex:agent-7
 
 Reclassification safety:

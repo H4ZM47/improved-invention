@@ -204,25 +204,10 @@ grind time resume TASK-1 --json --no-input --actor codex:agent-7
 
 ### Manual time entries
 
-Use this for backfill or explicitly recorded work:
+Manual time entry is now a human-facing interactive workflow:
 
-```sh
-grind time add TASK-1 \
-  --started-at 2026-04-21T10:00:00Z \
-  --duration 30m \
-  --note "Investigated report rendering" \
-  --json \
-  --no-input \
-  --actor codex:agent-7
-```
-
-```sh
-grind time edit TASK-1 <entry-id> \
-  --duration 45m \
-  --json \
-  --no-input \
-  --actor codex:agent-7
-```
+- agents should not create manual time entries
+- `grind time edit TASK-1` is interactive-only and designed for humans to select or add an entry locally
 
 ## Links And Relationships
 

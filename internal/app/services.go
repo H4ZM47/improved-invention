@@ -34,6 +34,7 @@ type TaskService interface {
 	StartSession(context.Context, StartTaskSessionRequest) (TaskSessionRecord, error)
 	PauseSession(context.Context, PauseTaskSessionRequest) (TaskSessionRecord, error)
 	ResumeSession(context.Context, ResumeTaskSessionRequest) (TaskSessionRecord, error)
+	ListManualTime(context.Context, ListManualTimeRequest) ([]ManualTimeEntryRecord, error)
 	AddManualTime(context.Context, AddManualTimeRequest) (ManualTimeEntryRecord, error)
 	EditManualTime(context.Context, EditManualTimeRequest) (ManualTimeEntryRecord, error)
 	Claim(context.Context, ClaimTaskRequest) (ClaimRecord, error)
@@ -313,6 +314,9 @@ type AddManualTimeRequest struct {
 	Duration  time.Duration
 	StartedAt *time.Time
 	Note      string
+}
+type ListManualTimeRequest struct {
+	Reference string
 }
 type EditManualTimeRequest struct {
 	Reference string
