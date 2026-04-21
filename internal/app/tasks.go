@@ -169,6 +169,58 @@ func (m TaskManager) ResumeSession(ctx context.Context, req ResumeTaskSessionReq
 	return m.recordSessionEvent(ctx, req.Reference, "active", taskdb.ResumeTaskSession)
 }
 
+// AddManualTime records an explicit backfilled time entry on a claimed task.
+func (m TaskManager) AddManualTime(ctx context.Context, req AddManualTimeRequest) (ManualTimeEntryRecord, error) {
+	actorID, err := m.resolveCurrentActorID(ctx)
+	if err != nil {
+		return ManualTimeEntryRecord{}, err
+	}
+	if actorID == nil {
+		return ManualTimeEntryRecord{}, fmt.Errorf("missing current actor for manual time entry")
+	}
+	if req.StartedAt == nil {
+		return ManualTimeEntryRecord{}, fmt.Errorf("manual time entry requires started_at")
+	}
+
+	entry, err := taskdb.CreateManualTimeEntry(ctx, m.DB, taskdb.ManualTimeEntryCreateInput{
+		TaskReference: req.Reference,
+		ActorID:       *actorID,
+		StartedAt:     *req.StartedAt,
+		Duration:      req.Duration,
+		Note:          req.Note,
+	})
+	if err != nil {
+		return ManualTimeEntryRecord{}, err
+	}
+
+	return toManualTimeEntryRecord(entry), nil
+}
+
+// EditManualTime updates an explicit manual time entry on a claimed task.
+func (m TaskManager) EditManualTime(ctx context.Context, req EditManualTimeRequest) (ManualTimeEntryRecord, error) {
+	actorID, err := m.resolveCurrentActorID(ctx)
+	if err != nil {
+		return ManualTimeEntryRecord{}, err
+	}
+	if actorID == nil {
+		return ManualTimeEntryRecord{}, fmt.Errorf("missing current actor for manual time entry")
+	}
+
+	entry, err := taskdb.EditManualTimeEntry(ctx, m.DB, taskdb.ManualTimeEntryEditInput{
+		TaskReference: req.Reference,
+		EntryID:       req.EntryID,
+		ActorID:       *actorID,
+		StartedAt:     req.StartedAt,
+		Duration:      req.Duration,
+		Note:          req.Note,
+	})
+	if err != nil {
+		return ManualTimeEntryRecord{}, err
+	}
+
+	return toManualTimeEntryRecord(entry), nil
+}
+
 // Claim acquires an exclusive claim on a task for the current actor.
 func (m TaskManager) Claim(ctx context.Context, req ClaimTaskRequest) (ClaimRecord, error) {
 	actorID, err := m.resolveCurrentActorID(ctx)
@@ -293,6 +345,16 @@ func toTaskRecord(task taskdb.Task) TaskRecord {
 		CreatedAt:       task.CreatedAt,
 		UpdatedAt:       task.UpdatedAt,
 		ClosedAt:        task.ClosedAt,
+	}
+}
+
+func toManualTimeEntryRecord(entry taskdb.ManualTimeEntry) ManualTimeEntryRecord {
+	return ManualTimeEntryRecord{
+		EntryID:        entry.EntryID,
+		TaskHandle:     entry.TaskHandle,
+		DurationSecond: int64(entry.Duration / time.Second),
+		StartedAt:      entry.StartedAt.UTC().Format(time.RFC3339),
+		Note:           entry.Note,
 	}
 }
 
