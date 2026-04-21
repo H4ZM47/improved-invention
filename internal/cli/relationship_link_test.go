@@ -26,7 +26,7 @@ func TestLinkAddTaskRelationshipUsesTaskTargetKind(t *testing.T) {
 	}
 
 	add := newLinkAddCommand(opts)
-	add.SetArgs([]string{"child", parentTask, childTask})
+	add.SetArgs([]string{parentTask, "child", childTask})
 	var stdout bytes.Buffer
 	add.SetOut(&stdout)
 	add.SetErr(&stdout)
@@ -71,11 +71,11 @@ func TestLinkCommandsListAndRemoveTaskAndExternalLinks(t *testing.T) {
 	}
 
 	add := newLinkAddCommand(opts)
-	add.SetArgs([]string{"url", taskHandle, "https://example.com/spec"})
+	add.SetArgs([]string{taskHandle, "url", "https://example.com/spec"})
 	if err := add.Execute(); err != nil {
 		t.Fatalf("link add Execute() error = %v", err)
 	}
-	add.SetArgs([]string{"blocks", taskHandle, otherTask})
+	add.SetArgs([]string{taskHandle, "blocks", otherTask})
 	if err := add.Execute(); err != nil {
 		t.Fatalf("link add relationship Execute() error = %v", err)
 	}
@@ -114,11 +114,11 @@ func TestLinkCommandsListAndRemoveTaskAndExternalLinks(t *testing.T) {
 	}
 
 	remove := newLinkRemoveCommand(opts)
-	remove.SetArgs([]string{"url", taskHandle, "https://example.com/spec"})
+	remove.SetArgs([]string{taskHandle, "url", "https://example.com/spec"})
 	if err := remove.Execute(); err != nil {
 		t.Fatalf("link remove Execute() error = %v", err)
 	}
-	remove.SetArgs([]string{"blocks", taskHandle, otherTask})
+	remove.SetArgs([]string{taskHandle, "blocks", otherTask})
 	if err := remove.Execute(); err != nil {
 		t.Fatalf("link remove relationship Execute() error = %v", err)
 	}

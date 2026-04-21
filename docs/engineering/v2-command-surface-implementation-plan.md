@@ -73,9 +73,9 @@ Keep file exports under:
 
 Canonical mutation shape:
 
-- `grind link add <type> <source> <target>`
+- `grind link add <source> <relationship> <target>`
 - `grind link list <source>`
-- `grind link remove <type> <source> <target>`
+- `grind link remove <source> <relationship> <target>`
 
 Repo helper rename:
 
@@ -257,4 +257,3 @@ To reduce risk, implement this in slices:
 5. Documentation and dogfood pass
 
 The universal link slice should not be mixed casually into unrelated command renames. It is the most conceptually invasive change in the plan.
-

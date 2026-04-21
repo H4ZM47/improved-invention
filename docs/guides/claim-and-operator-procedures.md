@@ -23,24 +23,24 @@ grind --config --json
 Acquire a claim:
 
 ```sh
-grind claim TASK-1 --actor codex:agent-7 --no-input --json
+grind claim acquire TASK-1 --actor codex:agent-7 --no-input --json
 ```
 
 Renew a claim before expiry:
 
 ```sh
-grind renew TASK-1 --actor codex:agent-7 --no-input --json
+grind claim renew TASK-1 --actor codex:agent-7 --no-input --json
 ```
 
 Release the claim when work is complete or handed off:
 
 ```sh
-grind release TASK-1 --actor codex:agent-7 --no-input --json
+grind claim release TASK-1 --actor codex:agent-7 --no-input --json
 ```
 
 ## When To Use Manual Unlock
 
-Use `grind unlock` only when the normal holder cannot release the task:
+Use `grind claim unlock` only when the normal holder cannot release the task:
 
 - the agent process crashed
 - the human or agent is gone and the lease cannot wait
@@ -50,7 +50,7 @@ Use `grind unlock` only when the normal holder cannot release the task:
 Command:
 
 ```sh
-grind unlock TASK-1 --json
+grind claim unlock TASK-1 --json
 ```
 
 Manual unlock is intentionally separate from normal release because it overrides the current holder.
@@ -62,7 +62,7 @@ Before unlocking:
 1. inspect the task and current state
 2. confirm the holder is actually stale or unavailable
 3. check whether the claim is close to natural expiry
-4. prefer `renew` or `release` if the current holder is still healthy
+4. prefer `claim renew` or `claim release` if the current holder is still healthy
 
 Useful commands:
 
@@ -105,7 +105,7 @@ Recommended response:
 2. decide whether the holder is still active
 3. if active, wait or coordinate
 4. if stale but recoverable, let the holder release or renew
-5. if stale and blocking, `grind unlock TASK-1 --json`
+5. if stale and blocking, `grind claim unlock TASK-1 --json`
 6. new worker claims the task normally
 
 That keeps the audit history clear and avoids bypassing the claim system for convenience.

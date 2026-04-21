@@ -301,7 +301,7 @@ func TestRunRelationshipAddInvalidTypeUsesDescriptiveMessage(t *testing.T) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "link", "add", "bogus", leftTask, rightTask}, &stdout, &stderr)
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "link", "add", leftTask, "bogus", rightTask}, &stdout, &stderr)
 	if got, want := exitCode, 41; got != want {
 		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
 	}
@@ -310,6 +310,25 @@ func TestRunRelationshipAddInvalidTypeUsesDescriptiveMessage(t *testing.T) {
 	}
 	if got := stdout.String(); !containsAll(got, []string{`"code": "INVALID_RELATIONSHIP"`, `unsupported link type`, `parent`, `blocks`}) {
 		t.Fatalf("stdout = %q, want descriptive invalid relationship message", got)
+	}
+}
+
+func TestRunLinkAddSelfLinkUsesValidationError(t *testing.T) {
+	t.Parallel()
+
+	dbPath, taskHandle, _ := seedTwoClaimedTasks(t)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := Run(BuildInfo{}, []string{"--db", dbPath, "--json", "link", "add", taskHandle, "blocks", taskHandle}, &stdout, &stderr)
+	if got, want := exitCode, 11; got != want {
+		t.Fatalf("exitCode = %d, want %d; stdout=%s", got, want, stdout.String())
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+	if got := stdout.String(); !containsAll(got, []string{`"code": "VALIDATION_ERROR"`, `a task link cannot target the same task`}) {
+		t.Fatalf("stdout = %q, want descriptive self-link validation message", got)
 	}
 }
 

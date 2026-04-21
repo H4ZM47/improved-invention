@@ -21,6 +21,8 @@ const (
 var (
 	// ErrInvalidRelationshipType indicates an unsupported relationship type.
 	ErrInvalidRelationshipType = errors.New("invalid relationship type")
+	// ErrSelfRelationship indicates a task link targeting the same task.
+	ErrSelfRelationship = errors.New("self relationship")
 )
 
 // Relationship is the database-backed representation of a task relationship.
@@ -72,6 +74,9 @@ func CreateRelationship(ctx context.Context, db *sql.DB, input RelationshipCreat
 	target, err := findTaskTx(ctx, tx, input.TargetTaskReference)
 	if err != nil {
 		return Relationship{}, err
+	}
+	if source.ID == target.ID {
+		return Relationship{}, fmt.Errorf("%w: a task link cannot target the same task", ErrSelfRelationship)
 	}
 
 	result, err := tx.ExecContext(ctx, `

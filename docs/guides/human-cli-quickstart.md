@@ -48,20 +48,20 @@ grind list --here
 Task updates are claim-gated. Claim the task before changing it:
 
 ```sh
-grind claim TASK-1
+grind claim acquire TASK-1
 grind update TASK-1 --status active
 ```
 
 Release it when you are done:
 
 ```sh
-grind release TASK-1
+grind claim release TASK-1
 ```
 
 If you need to keep a long-running claim alive:
 
 ```sh
-grind renew TASK-1
+grind claim renew TASK-1
 ```
 
 ## 4. Track Progress
@@ -69,9 +69,9 @@ grind renew TASK-1
 Start, pause, and resume active work:
 
 ```sh
-grind start TASK-1
-grind pause TASK-1
-grind resume TASK-1
+grind time start TASK-1
+grind time pause TASK-1
+grind time resume TASK-1
 ```
 
 Add manual time when you need to correct or supplement the session history:
@@ -111,15 +111,15 @@ If reclassification would inherit a default assignee, interactive mode prompts. 
 Attach external links:
 
 ```sh
-grind link add TASK-1 spec https://example.com/spec
-grind link attach-current-repo TASK-1
+grind link add TASK-1 url https://example.com/spec
+grind link-repo TASK-1
 ```
 
 Create task relationships:
 
 ```sh
-grind relationship add blocks TASK-1 TASK-2
-grind relationship list TASK-1
+grind link add TASK-1 blocks TASK-2
+grind link list TASK-1
 ```
 
 ## 7. Save Useful Views
@@ -144,10 +144,9 @@ grind view update docs-backlog --status active
 Mark work complete or cancelled:
 
 ```sh
-grind close TASK-1 --status completed
-grind close TASK-2 --status cancelled
+grind close TASK-1
+grind cancel TASK-2
 ```
-
 `grind close` also closes any active or paused time session on that task.
 
 ## 9. Switch To JSON When Needed

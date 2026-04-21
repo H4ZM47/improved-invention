@@ -4,10 +4,11 @@ This guide covers the supported ways to run Grind today and the minimum bootstra
 
 ## Current Installation Paths
 
-Package-manager distribution is still being finished. Today, the supported paths are:
+Supported paths today:
 
-1. build from source
-2. run a release archive produced by CI
+1. install from a published release
+2. install with Homebrew
+3. build from source
 
 ### Build From Source
 
@@ -35,16 +36,19 @@ Release archives are built by `scripts/build-release.sh` and bundled as standalo
 
 Local example:
 
+Download the right asset from [GitHub Releases](https://github.com/H4ZM47/grind/releases), extract it, and run:
+
 ```sh
-GOOS=darwin GOARCH=arm64 VERSION=dev COMMIT=$(git rev-parse --short HEAD) DATE=$(date -u +%FT%TZ) \
-  ./scripts/build-release.sh
+./grind --version
 ```
 
-That produces an archive under `dist/releases/` containing:
+### Homebrew
 
-- the `grind` binary
-- `LICENSE`
-- `README.md`
+```sh
+brew tap H4ZM47/grind
+brew install grind
+grind --version
+```
 
 ## Runtime Configuration
 
@@ -103,7 +107,7 @@ Grind distinguishes the configured local human from ephemeral agent actors.
 Example:
 
 ```sh
-grind claim TASK-1 --actor codex:agent-7 --json
+grind claim acquire TASK-1 --actor codex:agent-7 --json
 ```
 
 ## First Sanity Checks

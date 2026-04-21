@@ -88,7 +88,7 @@ func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
 	if !payload.OK {
 		t.Fatal("payload.OK = false, want true")
 	}
-	if got, want := payload.Command, "grind report api tasks"; got != want {
+	if got, want := payload.Command, "grind serve api tasks"; got != want {
 		t.Fatalf("payload.Command = %q, want %q", got, want)
 	}
 	if got, want := payload.Meta.Count, 1; got != want {

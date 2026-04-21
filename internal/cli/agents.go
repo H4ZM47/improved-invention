@@ -31,7 +31,7 @@ Useful commands:
 - grind list --here --json --actor codex:agent-7
 - grind link-repo TASK-1 --json --no-input --actor codex:agent-7
 - grind time add TASK-1 --started-at 2026-04-21T10:00:00Z --duration 30m --json --no-input --actor codex:agent-7
-- grind link add blocks TASK-1 TASK-2 --json --no-input --actor codex:agent-7
+- grind link add TASK-1 blocks TASK-2 --json --no-input --actor codex:agent-7
 
 Reclassification safety:
 - when changing --domain or --project in non-interactive mode, also choose one of:

@@ -29,7 +29,7 @@ Examples in docs, scripts, and tests should use `grind ...` as the canonical com
 
 - The root command owns the primary task workflow because the executable itself is already named `grind`.
 - Additional top-level commands are nouns that map to first-class product concepts or platform functions.
-- Leaf commands are verbs such as `create`, `list`, `show`, `update`, `claim`, or `export`.
+- Leaf commands are verbs such as `create`, `list`, `show`, `update`, `open`, `close`, `cancel`, or `export`.
 - Purely informational root affordances should use `--option` flags rather than noun-style commands.
 - Commands should favor explicit flags over positional magic when non-interactive automation is expected.
 - A command that mutates state must be runnable without prompts.
@@ -59,8 +59,7 @@ Expected responsibility:
 - list tasks
 - update fields
 - change status
-- claim, renew, release, and unlock
-- manage task relationships
+- claim, renew, release, and unlock through a nested claim namespace
 - manage task links
 - manage task time tracking
 
@@ -71,12 +70,12 @@ grind create ...
 grind list ...
 grind show <task-ref>
 grind update <task-ref> ...
-grind claim <task-ref> ...
+grind claim acquire <task-ref>
 ```
 
 Note:
 
-- task lifecycle, claims, relationships, links, and time tracking stay at the root because the executable already names the primary entity.
+- task lifecycle, the `claim` namespace, the `time` namespace, and link operations stay near the root because the executable already names the primary entity.
 
 ### `project`
 
@@ -88,7 +87,7 @@ Expected responsibility:
 - show project detail
 - list projects
 - update project fields
-- close or reopen projects
+- open, close, or cancel projects
 - manage default assignee settings
 
 ### `domain`
@@ -101,7 +100,7 @@ Expected responsibility:
 - show domain detail
 - list domains
 - update domain fields
-- close or reopen domains
+- open, close, or cancel domains
 - manage default assignee settings
 
 ### `actor`
@@ -146,16 +145,6 @@ Expected responsibility:
 - export tasks to TXT
 - export tasks to built-in Markdown
 
-### `report`
-
-Read-only local HTML reporting.
-
-Expected responsibility:
-
-- start the local report server
-- select bind address or port
-- choose filters or initial view parameters
-
 ### `backup`
 
 Full-fidelity backup creation.
@@ -172,19 +161,15 @@ Expected responsibility:
 
 - restore a previously created backup artifact into a local database
 
-### `config`
+### `serve`
 
-Local machine configuration and environment inspection.
+Read-only local HTML reporting.
 
 Expected responsibility:
 
-- inspect resolved database path
-- inspect current actor configuration
-- inspect current runtime paths and defaults
-
-Rationale:
-
-- keeping config inspection separate avoids overloading entity commands with machine-level concerns.
+- start the local report server
+- select bind address or port
+- choose filters or initial view parameters
 
 ## Global Flags
 
@@ -219,15 +204,18 @@ grind
   list
   show
   update
-  claim
-  renew
-  release
-  unlock
-  start
-  pause
-  resume
+  open
   close
+  cancel
+  claim
+    acquire
+    renew
+    release
+    unlock
   time
+    start
+    pause
+    resume
     add
     edit
   project
@@ -235,13 +223,25 @@ grind
     list
     show
     update
+    open
     close
+    cancel
   domain
     create
     list
     show
     update
+    open
     close
+    cancel
+  milestone
+    create
+    list
+    show
+    update
+    open
+    close
+    cancel
   actor
     list
     show
@@ -257,14 +257,11 @@ grind
     csv
     txt
     markdown
-  report
-    serve
   backup
     create
   restore
-    apply
-  config
-    show
+  serve
+  link-repo
 ```
 
 ## Naming Consequences
@@ -273,7 +270,7 @@ This command map intentionally keeps:
 
 - task-specific workflows at the root
 - other entity management at the top level
-- portability features under `backup`, `restore`, and `export`
-- machine configuration under `config`
+- portability features under `backup`, `restore`, `export`, and `serve`
+- machine configuration as root-level flags instead of noun commands
 
 That split should make the CLI easier for both humans and agents to scan, script, and document.
