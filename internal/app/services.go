@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"time"
+
+	"github.com/H4ZM47/improved-invention/internal/gitctx"
 )
 
 // Services groups the service-layer interfaces that CLI command handlers call.
@@ -74,6 +76,7 @@ type RelationshipService interface {
 // LinkService defines task external-link workflows.
 type LinkService interface {
 	Create(context.Context, CreateLinkRequest) (LinkRecord, error)
+	AttachCurrentRepoContext(context.Context, AttachCurrentRepoContextRequest) (AttachCurrentRepoContextResult, error)
 	List(context.Context, ListLinksRequest) ([]LinkRecord, error)
 	Remove(context.Context, RemoveLinkRequest) error
 }
@@ -231,14 +234,16 @@ type CreateTaskRequest struct {
 }
 
 type ListTasksRequest struct {
-	Statuses    []string
-	DomainRef   *string
-	ProjectRef  *string
-	AssigneeRef *string
-	DueBefore   *string
-	DueAfter    *string
-	Tags        []string
-	Search      string
+	Statuses       []string
+	DomainRef      *string
+	ProjectRef     *string
+	AssigneeRef    *string
+	DueBefore      *string
+	DueAfter       *string
+	Tags           []string
+	Search         string
+	RepoTarget     *string
+	WorktreeTarget *string
 }
 
 type ShowTaskRequest struct {
@@ -335,6 +340,17 @@ type RemoveLinkRequest struct {
 	Type    *string
 	Target  *string
 	ActorID *int64
+}
+
+type AttachCurrentRepoContextRequest struct {
+	TaskRef  string
+	Context  gitctx.Context
+	LinkRepo bool
+}
+
+type AttachCurrentRepoContextResult struct {
+	RepoLink     *LinkRecord `json:"repo_link"`
+	WorktreeLink LinkRecord  `json:"worktree_link"`
 }
 
 type CreateProjectRequest struct {
