@@ -13,6 +13,7 @@ type jsonDocument struct {
 	Tasks         []app.TaskRecord         `json:"tasks"`
 	Domains       []app.DomainRecord       `json:"domains"`
 	Projects      []app.ProjectRecord      `json:"projects"`
+	Milestones    []app.MilestoneRecord    `json:"milestones"`
 	Actors        []app.ActorRecord        `json:"actors"`
 	Links         []app.LinkRecord         `json:"links"`
 	Relationships []app.RelationshipRecord `json:"relationships"`
@@ -29,6 +30,7 @@ func EncodeJSON(bundle Bundle) ([]byte, error) {
 		Tasks:         normalizeTasks(bundle.Tasks),
 		Domains:       normalizeDomains(bundle.Domains),
 		Projects:      normalizeProjects(bundle.Projects),
+		Milestones:    normalizeMilestones(bundle.Milestones),
 		Actors:        normalizeSlice(bundle.Actors),
 		Links:         normalizeLinks(bundle.Links),
 		Relationships: normalizeSlice(bundle.Relationships),
@@ -81,6 +83,15 @@ func normalizeProjects(projects []app.ProjectRecord) []app.ProjectRecord {
 		}
 		out[i] = p
 	}
+	return out
+}
+
+func normalizeMilestones(milestones []app.MilestoneRecord) []app.MilestoneRecord {
+	if milestones == nil {
+		return []app.MilestoneRecord{}
+	}
+	out := make([]app.MilestoneRecord, len(milestones))
+	copy(out, milestones)
 	return out
 }
 

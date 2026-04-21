@@ -12,6 +12,7 @@ type Services interface {
 	Tasks() TaskService
 	Projects() ProjectService
 	Domains() DomainService
+	Milestones() MilestoneService
 	Actors() ActorService
 	Relationships() RelationshipService
 	Links() LinkService
@@ -55,6 +56,14 @@ type DomainService interface {
 	List(context.Context, ListDomainsRequest) ([]DomainRecord, error)
 	Show(context.Context, ShowDomainRequest) (DomainRecord, error)
 	Update(context.Context, UpdateDomainRequest) (DomainRecord, error)
+}
+
+// MilestoneService defines milestone workflows exposed to the CLI.
+type MilestoneService interface {
+	Create(context.Context, CreateMilestoneRequest) (MilestoneRecord, error)
+	List(context.Context, ListMilestonesRequest) ([]MilestoneRecord, error)
+	Show(context.Context, ShowMilestoneRequest) (MilestoneRecord, error)
+	Update(context.Context, UpdateMilestoneRequest) (MilestoneRecord, error)
 }
 
 // ActorService defines actor inspection and human configuration workflows.
@@ -107,6 +116,8 @@ type TaskRecord struct {
 	Status          string   `json:"status"`
 	DomainID        *string  `json:"domain_id"`
 	ProjectID       *string  `json:"project_id"`
+	MilestoneID     *string  `json:"milestone_id"`
+	MilestoneHandle *string  `json:"milestone_handle,omitempty"`
 	AssigneeActorID *string  `json:"assignee_actor_id"`
 	DueAt           *string  `json:"due_at"`
 	Tags            []string `json:"tags"`
@@ -144,6 +155,18 @@ type DomainRecord struct {
 	CreatedAt              string   `json:"created_at"`
 	UpdatedAt              string   `json:"updated_at"`
 	ClosedAt               *string  `json:"closed_at"`
+}
+
+type MilestoneRecord struct {
+	Handle      string  `json:"handle"`
+	UUID        string  `json:"uuid"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Status      string  `json:"status"`
+	DueAt       *string `json:"due_at"`
+	CreatedAt   string  `json:"created_at"`
+	UpdatedAt   string  `json:"updated_at"`
+	ClosedAt    *string `json:"closed_at"`
 }
 
 type ActorRecord struct {
@@ -224,19 +247,21 @@ type ManualTimeEntryRecord struct {
 }
 
 type CreateTaskRequest struct {
-	Title       string
-	Description string
-	Tags        []string
-	DomainRef   *string
-	ProjectRef  *string
-	AssigneeRef *string
-	DueAt       *string
+	Title        string
+	Description  string
+	Tags         []string
+	DomainRef    *string
+	ProjectRef   *string
+	MilestoneRef *string
+	AssigneeRef  *string
+	DueAt        *string
 }
 
 type ListTasksRequest struct {
 	Statuses       []string
 	DomainRef      *string
 	ProjectRef     *string
+	MilestoneRef   *string
 	AssigneeRef    *string
 	DueBefore      *string
 	DueAfter       *string
@@ -257,6 +282,8 @@ type UpdateTaskRequest struct {
 	Tags                  *[]string
 	DomainRef             *string
 	ProjectRef            *string
+	MilestoneRef          *string
+	ClearMilestone        bool
 	AssigneeRef           *string
 	DueAt                 *string
 	Status                *string
@@ -399,6 +426,26 @@ type UpdateDomainRequest struct {
 	DueAt              *string
 	Tags               *[]string
 	Status             *string
+}
+
+type CreateMilestoneRequest struct {
+	Name        string
+	Description string
+	DueAt       *string
+}
+
+type ListMilestonesRequest struct{}
+
+type ShowMilestoneRequest struct {
+	Reference string
+}
+
+type UpdateMilestoneRequest struct {
+	Reference   string
+	Name        *string
+	Description *string
+	DueAt       *string
+	Status      *string
 }
 
 type ListActorsRequest struct{}

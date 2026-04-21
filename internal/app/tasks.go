@@ -47,14 +47,15 @@ func (m TaskManager) Create(ctx context.Context, req CreateTaskRequest) (TaskRec
 	}
 
 	task, err := taskdb.CreateTask(ctx, m.DB, taskdb.TaskCreateInput{
-		Title:       req.Title,
-		Description: req.Description,
-		Tags:        req.Tags,
-		DomainRef:   classification.domainRef,
-		ProjectRef:  classification.projectRef,
-		AssigneeRef: assigneeRef,
-		DueAt:       req.DueAt,
-		ActorID:     actorID,
+		Title:        req.Title,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		DomainRef:    classification.domainRef,
+		ProjectRef:   classification.projectRef,
+		MilestoneRef: req.MilestoneRef,
+		AssigneeRef:  assigneeRef,
+		DueAt:        req.DueAt,
+		ActorID:      actorID,
 	})
 	if err != nil {
 		return TaskRecord{}, err
@@ -69,6 +70,7 @@ func (m TaskManager) List(ctx context.Context, req ListTasksRequest) ([]TaskReco
 		Statuses:       req.Statuses,
 		DomainRef:      req.DomainRef,
 		ProjectRef:     req.ProjectRef,
+		MilestoneRef:   req.MilestoneRef,
 		AssigneeRef:    req.AssigneeRef,
 		DueBefore:      req.DueBefore,
 		DueAfter:       req.DueAfter,
@@ -146,17 +148,24 @@ func (m TaskManager) Update(ctx context.Context, req UpdateTaskRequest) (TaskRec
 		}
 	}
 
+	milestoneRef := req.MilestoneRef
+	if req.ClearMilestone {
+		empty := ""
+		milestoneRef = &empty
+	}
+
 	task, err := taskdb.UpdateTask(ctx, m.DB, taskdb.TaskUpdateInput{
-		Reference:   req.Reference,
-		Title:       req.Title,
-		Description: req.Description,
-		Tags:        req.Tags,
-		DomainRef:   classification.domainRef,
-		ProjectRef:  classification.projectRef,
-		AssigneeRef: assigneeRef,
-		DueAt:       req.DueAt,
-		Status:      req.Status,
-		ActorID:     actorID,
+		Reference:    req.Reference,
+		Title:        req.Title,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		DomainRef:    classification.domainRef,
+		ProjectRef:   classification.projectRef,
+		MilestoneRef: milestoneRef,
+		AssigneeRef:  assigneeRef,
+		DueAt:        req.DueAt,
+		Status:       req.Status,
+		ActorID:      actorID,
 	})
 	if err != nil {
 		return TaskRecord{}, err
@@ -350,6 +359,8 @@ func toTaskRecord(task taskdb.Task) TaskRecord {
 		Status:          task.Status,
 		DomainID:        task.DomainUUID,
 		ProjectID:       task.ProjectUUID,
+		MilestoneID:     task.MilestoneUUID,
+		MilestoneHandle: task.MilestoneHandle,
 		AssigneeActorID: task.AssigneeUUID,
 		DueAt:           task.DueAt,
 		Tags:            task.Tags,

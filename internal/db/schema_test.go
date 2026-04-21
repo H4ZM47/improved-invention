@@ -23,6 +23,19 @@ func TestSchemaEnforcesProjectDomainContainment(t *testing.T) {
 	}
 }
 
+func TestSchemaEnforcesTaskMilestoneContainment(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+
+	if _, err := db.Exec(`
+		INSERT INTO tasks(uuid, handle, title, milestone_id)
+		VALUES ('task-uuid', 'TASK-1', 'CLI task', 999)
+	`); err == nil {
+		t.Fatal("insert task without milestone succeeded, want foreign key failure")
+	}
+}
+
 func TestSchemaEnforcesActorIdentityUniqueness(t *testing.T) {
 	t.Parallel()
 
@@ -112,10 +125,11 @@ func TestSchemaSeedsHandleSequences(t *testing.T) {
 	}
 
 	want := map[string]int{
-		"actor":   1,
-		"domain":  1,
-		"project": 1,
-		"task":    1,
+		"actor":     1,
+		"domain":    1,
+		"milestone": 1,
+		"project":   1,
+		"task":      1,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("len(got) = %d, want %d", len(got), len(want))
@@ -190,13 +204,38 @@ func insertActor(t *testing.T, db *sql.DB, uuid string, handle string, kind stri
 	return id
 }
 
-func insertTask(t *testing.T, db *sql.DB, uuid string, handle string, title string, domainID any, projectID any) int64 {
+func insertMilestone(t *testing.T, db *sql.DB, uuid string, handle string, name string) int64 {
 	t.Helper()
 
 	result, err := db.Exec(`
-		INSERT INTO tasks(uuid, handle, title, domain_id, project_id)
-		VALUES (?, ?, ?, ?, ?)
-	`, uuid, handle, title, domainID, projectID)
+		INSERT INTO milestones(uuid, handle, name)
+		VALUES (?, ?, ?)
+	`, uuid, handle, name)
+	if err != nil {
+		t.Fatalf("insert milestone failed: %v", err)
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		t.Fatalf("LastInsertId() for milestone failed: %v", err)
+	}
+
+	return id
+}
+
+func insertTask(t *testing.T, db *sql.DB, uuid string, handle string, title string, domainID any, projectID any) int64 {
+	t.Helper()
+
+	return insertTaskWithMilestone(t, db, uuid, handle, title, domainID, projectID, nil)
+}
+
+func insertTaskWithMilestone(t *testing.T, db *sql.DB, uuid string, handle string, title string, domainID any, projectID any, milestoneID any) int64 {
+	t.Helper()
+
+	result, err := db.Exec(`
+		INSERT INTO tasks(uuid, handle, title, domain_id, project_id, milestone_id)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, uuid, handle, title, domainID, projectID, milestoneID)
 	if err != nil {
 		t.Fatalf("insert task failed: %v", err)
 	}

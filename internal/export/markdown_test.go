@@ -37,6 +37,9 @@ func TestEncodeMarkdownRendersTaskCheckbox(t *testing.T) {
 	if !strings.Contains(got, "- assignee: actor-uuid") {
 		t.Fatalf("expected assignee, got:\n%s", got)
 	}
+	if !strings.Contains(got, "- milestone: MILE-1") {
+		t.Fatalf("expected milestone, got:\n%s", got)
+	}
 }
 
 func TestEncodeMarkdownCompletedTaskIsChecked(t *testing.T) {
@@ -69,6 +72,7 @@ func TestEncodeMarkdownSummaryCountsAllEntities(t *testing.T) {
 		"| Tasks | 2 |",
 		"| Domains | 1 |",
 		"| Projects | 3 |",
+		"| Milestones | 0 |",
 		"| Actors | 0 |",
 	} {
 		if !strings.Contains(got, want) {

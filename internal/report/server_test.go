@@ -23,7 +23,7 @@ func TestServerTaskListHTMLRendersFilteredTasks(t *testing.T) {
 	httpServer := httptest.NewServer(server.Handler())
 	defer httpServer.Close()
 
-	res, err := http.Get(httpServer.URL + "/tasks?search=contract&tag=cli&status=active")
+	res, err := http.Get(httpServer.URL + "/tasks?search=contract&tag=cli&status=active&milestone=MILE-1")
 	if err != nil {
 		t.Fatalf("http.Get() error = %v", err)
 	}
@@ -43,6 +43,9 @@ func TestServerTaskListHTMLRendersFilteredTasks(t *testing.T) {
 	if !strings.Contains(body, `value="contract"`) {
 		t.Fatalf("grind list HTML did not preserve search input:\n%s", body)
 	}
+	if !strings.Contains(body, `value="MILE-1"`) {
+		t.Fatalf("grind list HTML did not preserve milestone input:\n%s", body)
+	}
 }
 
 func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
@@ -52,7 +55,7 @@ func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
 	httpServer := httptest.NewServer(server.Handler())
 	defer httpServer.Close()
 
-	res, err := http.Get(httpServer.URL + "/api/tasks?tag=cli&status=active")
+	res, err := http.Get(httpServer.URL + "/api/tasks?tag=cli&status=active&milestone=MILE-1")
 	if err != nil {
 		t.Fatalf("http.Get() error = %v", err)
 	}
@@ -73,8 +76,9 @@ func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
 		Meta struct {
 			Count   int `json:"count"`
 			Filters struct {
-				Statuses []string `json:"status"`
-				Tags     []string `json:"tags"`
+				Statuses  []string `json:"status"`
+				Tags      []string `json:"tags"`
+				Milestone string   `json:"milestone"`
 			} `json:"filters"`
 		} `json:"meta"`
 	}
@@ -99,6 +103,9 @@ func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
 	if got, want := payload.Meta.Filters.Tags[0], "cli"; got != want {
 		t.Fatalf("payload.Meta.Filters.Tags[0] = %q, want %q", got, want)
 	}
+	if got, want := payload.Meta.Filters.Milestone, "MILE-1"; got != want {
+		t.Fatalf("payload.Meta.Filters.Milestone = %q, want %q", got, want)
+	}
 }
 
 func TestServerTaskDetailHTMLRendersLinksAndRelationships(t *testing.T) {
@@ -122,6 +129,7 @@ func TestServerTaskDetailHTMLRendersLinksAndRelationships(t *testing.T) {
 	for _, want := range []string{
 		"Write CLI contract",
 		"Document list filters",
+		"MILE-1",
 		"https://example.com/spec",
 		"blocks",
 		"TASK-2",
@@ -174,13 +182,20 @@ func seedReportServer(t *testing.T) (*Server, string) {
 	}
 
 	taskManager := app.TaskManager{DB: db, HumanName: "alex"}
+	milestoneManager := app.MilestoneManager{DB: db, HumanName: "alex"}
 	linkManager := app.LinkManager{DB: db, HumanName: "alex"}
 	relationshipManager := app.RelationshipManager{DB: db, HumanName: "alex"}
 
+	milestone, err := milestoneManager.Create(context.Background(), app.CreateMilestoneRequest{Name: "v1.0.2"})
+	if err != nil {
+		t.Fatalf("CreateMilestone() error = %v", err)
+	}
+
 	mainTask, err := taskManager.Create(context.Background(), app.CreateTaskRequest{
-		Title:       "Write CLI contract",
-		Description: "Document list filters",
-		Tags:        []string{"cli", "contract"},
+		Title:        "Write CLI contract",
+		Description:  "Document list filters",
+		Tags:         []string{"cli", "contract"},
+		MilestoneRef: &milestone.Handle,
 	})
 	if err != nil {
 		t.Fatalf("Create(mainTask) error = %v", err)

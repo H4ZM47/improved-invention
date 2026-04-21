@@ -136,6 +136,7 @@ func TestOpenExpiresStaleClaims(t *testing.T) {
 
 type backupFixtureExpectation struct {
 	DomainHandle  string
+	MilestoneHandle string
 	ProjectHandle string
 	TaskOneHandle string
 	TaskOneUUID   string
@@ -239,6 +240,16 @@ func seedBackupFixtureDB(t *testing.T) (string, backupFixtureExpectation) {
 	}); err != nil {
 		t.Fatalf("CreateView() error = %v", err)
 	}
+	milestone, err := taskdb.CreateMilestone(context.Background(), db, taskdb.MilestoneCreateInput{
+		Name:        "v1.0.1",
+		Description: "Portable backup milestone",
+	})
+	if err != nil {
+		t.Fatalf("CreateMilestone() error = %v", err)
+	}
+	if _, err := db.Exec(`UPDATE tasks SET milestone_id = ? WHERE uuid = ?`, milestone.ID, taskOne.UUID); err != nil {
+		t.Fatalf("attach milestone to taskOne failed: %v", err)
+	}
 
 	var eventCount int
 	if err := db.QueryRow(`SELECT COUNT(1) FROM events`).Scan(&eventCount); err != nil {
@@ -246,15 +257,16 @@ func seedBackupFixtureDB(t *testing.T) (string, backupFixtureExpectation) {
 	}
 
 	return dbPath, backupFixtureExpectation{
-		DomainHandle:  domain.Handle,
-		ProjectHandle: project.Handle,
-		TaskOneHandle: taskOne.Handle,
-		TaskOneUUID:   taskOne.UUID,
-		TaskTwoHandle: taskTwo.Handle,
-		TaskTwoUUID:   taskTwo.UUID,
-		ActorHandle:   human.Handle,
-		SavedViewName: "Open Backup Work",
-		EventCount:    eventCount,
+		DomainHandle:    domain.Handle,
+		MilestoneHandle: milestone.Handle,
+		ProjectHandle:   project.Handle,
+		TaskOneHandle:   taskOne.Handle,
+		TaskOneUUID:     taskOne.UUID,
+		TaskTwoHandle:   taskTwo.Handle,
+		TaskTwoUUID:     taskTwo.UUID,
+		ActorHandle:     human.Handle,
+		SavedViewName:   "Open Backup Work",
+		EventCount:      eventCount,
 	}
 }
 
@@ -268,6 +280,12 @@ func assertBackupFixturePreserved(t *testing.T, db *sql.DB, expected backupFixtu
 	if got, want := taskOne.UUID, expected.TaskOneUUID; got != want {
 		t.Fatalf("taskOne.UUID = %q, want %q", got, want)
 	}
+	if taskOne.MilestoneHandle == nil {
+		t.Fatal("taskOne.MilestoneHandle = nil, want preserved milestone handle")
+	}
+	if got, want := *taskOne.MilestoneHandle, expected.MilestoneHandle; got != want {
+		t.Fatalf("taskOne.MilestoneHandle = %q, want %q", got, want)
+	}
 
 	taskTwo, err := taskdb.FindTask(context.Background(), db, expected.TaskTwoHandle)
 	if err != nil {
@@ -279,6 +297,9 @@ func assertBackupFixturePreserved(t *testing.T, db *sql.DB, expected backupFixtu
 
 	if _, err := taskdb.FindDomain(context.Background(), db, expected.DomainHandle); err != nil {
 		t.Fatalf("FindDomain() error = %v", err)
+	}
+	if _, err := taskdb.FindMilestone(context.Background(), db, expected.MilestoneHandle); err != nil {
+		t.Fatalf("FindMilestone() error = %v", err)
 	}
 	if _, err := taskdb.FindProject(context.Background(), db, expected.ProjectHandle); err != nil {
 		t.Fatalf("FindProject() error = %v", err)

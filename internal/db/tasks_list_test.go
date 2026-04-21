@@ -45,9 +45,10 @@ func TestListTasksSupportsFieldTagAndSearchFilters(t *testing.T) {
 	db := openTestDB(t)
 	domainID := insertDomain(t, db, "domain-1", "DOM-1", "Work")
 	projectID := insertProjectFixture(t, db, "project-1", "PROJ-1", "Grind", domainID)
+	milestoneID := insertMilestone(t, db, "milestone-1", "MILE-1", "v1.0.1")
 	assigneeID := insertActor(t, db, "actor-1", "ACT-1", "human", "", "alex")
 
-	insertTask(t, db, "task-1", "TASK-1", "Write CLI contract", domainID, projectID)
+	insertTaskWithMilestone(t, db, "task-1", "TASK-1", "Write CLI contract", domainID, projectID, milestoneID)
 	updateTaskFixture(t, db, "TASK-1", taskFixtureUpdate{
 		Description: "Document the shared list command",
 		Status:      "active",
@@ -68,6 +69,7 @@ func TestListTasksSupportsFieldTagAndSearchFilters(t *testing.T) {
 		Statuses:    []string{"active"},
 		DomainRef:   stringPointer("DOM-1"),
 		ProjectRef:  stringPointer("PROJ-1"),
+		MilestoneRef: stringPointer("MILE-1"),
 		AssigneeRef: stringPointer("ACT-1"),
 		DueBefore:   stringPointer("2026-04-21T23:59:59Z"),
 		DueAfter:    stringPointer("2026-04-21T00:00:00Z"),

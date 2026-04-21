@@ -85,6 +85,7 @@ func newRootCommandWithOptions(build BuildInfo) (*cobra.Command, *GlobalOptions)
 		newTaskCloseCommand(opts),
 		newProjectCommand(opts),
 		newDomainCommand(opts),
+		newMilestoneCommand(opts),
 		newActorCommand(opts),
 		newViewCommand(opts),
 		newExportCommand(opts),

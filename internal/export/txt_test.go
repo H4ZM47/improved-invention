@@ -25,6 +25,7 @@ func TestEncodeTXTTaskBlock(t *testing.T) {
 		"TASK-1042  Write initial CLI contract reference",
 		"  status: active    assignee: actor-uuid",
 		"  tags: cli, contracts",
+		"  milestone: MILE-1",
 		"  updated: 2026-04-21T03:12:00Z",
 		"  Capture JSON envelopes.",
 	}

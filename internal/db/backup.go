@@ -126,6 +126,7 @@ func validateBackupArtifact(ctx context.Context, path string) error {
 	requiredTables := []string{
 		"actors",
 		"domains",
+		"milestones",
 		"projects",
 		"tasks",
 		"claims",

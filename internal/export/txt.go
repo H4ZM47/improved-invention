@@ -40,6 +40,9 @@ func EncodeTXT(bundle Bundle) []byte {
 		if len(task.Tags) > 0 {
 			fmt.Fprintf(&b, "  tags: %s\n", strings.Join(task.Tags, ", "))
 		}
+		if task.MilestoneHandle != nil && *task.MilestoneHandle != "" {
+			fmt.Fprintf(&b, "  milestone: %s\n", *task.MilestoneHandle)
+		}
 
 		meta := "  updated: " + task.UpdatedAt
 		if task.DueAt != nil && *task.DueAt != "" {

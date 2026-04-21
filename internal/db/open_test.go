@@ -32,6 +32,7 @@ func TestOpenAppliesRuntimePragmas(t *testing.T) {
 	assertTableExists(t, db, "tasks")
 	assertTableExists(t, db, "projects")
 	assertTableExists(t, db, "domains")
+	assertTableExists(t, db, "milestones")
 	assertTableExists(t, db, "actors")
 	assertTableExists(t, db, "claims")
 	assertTableExists(t, db, "relationships")
