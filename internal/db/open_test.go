@@ -29,6 +29,16 @@ func TestOpenAppliesRuntimePragmas(t *testing.T) {
 	assertPragmaInt(t, db, "busy_timeout", 7000)
 	assertPragmaInt(t, db, "foreign_keys", 1)
 	assertPragmaText(t, db, "journal_mode", "wal")
+	assertTableExists(t, db, "tasks")
+	assertTableExists(t, db, "projects")
+	assertTableExists(t, db, "domains")
+	assertTableExists(t, db, "actors")
+	assertTableExists(t, db, "claims")
+	assertTableExists(t, db, "relationships")
+	assertTableExists(t, db, "external_links")
+	assertTableExists(t, db, "events")
+	assertTableExists(t, db, "saved_views")
+	assertTableExists(t, db, "handle_sequences")
 }
 
 func assertPragmaInt(t *testing.T, db *sql.DB, pragma string, want int) {
@@ -56,5 +66,21 @@ func assertPragmaText(t *testing.T, db *sql.DB, pragma string, want string) {
 
 	if got != want {
 		t.Fatalf("%s = %q, want %q", pragma, got, want)
+	}
+}
+
+func assertTableExists(t *testing.T, db *sql.DB, name string) {
+	t.Helper()
+
+	var got string
+	if err := db.QueryRow(
+		`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+		name,
+	).Scan(&got); err != nil {
+		t.Fatalf("table %s missing: %v", name, err)
+	}
+
+	if got != name {
+		t.Fatalf("table lookup returned %q, want %q", got, name)
 	}
 }

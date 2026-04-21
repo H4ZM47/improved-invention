@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -19,6 +20,7 @@ type Options struct {
 	ActorOverride  string
 	LookupEnv      func(string) (string, bool)
 	UserConfigDir  func() (string, error)
+	CurrentUser    func() (*user.User, error)
 }
 
 // Resolved is the runtime configuration computed for the current process.
@@ -26,6 +28,7 @@ type Resolved struct {
 	DataDir     string
 	DBPath      string
 	Actor       string
+	HumanName   string
 	BusyTimeout time.Duration
 	ClaimLease  time.Duration
 	SourceOrder []string
@@ -42,6 +45,11 @@ func Resolve(opts Options) (Resolved, error) {
 	userConfigDir := opts.UserConfigDir
 	if userConfigDir == nil {
 		userConfigDir = os.UserConfigDir
+	}
+
+	currentUser := opts.CurrentUser
+	if currentUser == nil {
+		currentUser = user.Current
 	}
 
 	configDir, err := userConfigDir()
@@ -67,6 +75,17 @@ func Resolve(opts Options) (Resolved, error) {
 		actor = opts.ActorOverride
 	}
 
+	humanName := envString(lookupEnv, "TASK_HUMAN_NAME")
+	if humanName == "" {
+		current, err := currentUser()
+		if err == nil && current != nil && current.Username != "" {
+			humanName = current.Username
+		}
+	}
+	if humanName == "" {
+		humanName = "local-human"
+	}
+
 	busyTimeout := defaultBusyTimeout
 	if raw := envString(lookupEnv, "TASK_BUSY_TIMEOUT_MS"); raw != "" {
 		ms, err := strconv.Atoi(raw)
@@ -89,6 +108,7 @@ func Resolve(opts Options) (Resolved, error) {
 		DataDir:     dataDir,
 		DBPath:      dbPath,
 		Actor:       actor,
+		HumanName:   humanName,
 		BusyTimeout: busyTimeout,
 		ClaimLease:  claimLease,
 		SourceOrder: []string{
