@@ -23,6 +23,7 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 	var tags string
 	var domain string
 	var project string
+	var milestone string
 	var assignee string
 	var dueAt string
 
@@ -38,13 +39,14 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			defer db.Close()
 
 			task, err := manager.Create(cmd.Context(), app.CreateTaskRequest{
-				Title:       args[0],
-				Description: description,
-				Tags:        splitCSV(tags),
-				DomainRef:   optionalString(cmd, "domain", domain),
-				ProjectRef:  optionalString(cmd, "project", project),
-				AssigneeRef: optionalString(cmd, "assignee", assignee),
-				DueAt:       optionalString(cmd, "due-at", dueAt),
+				Title:        args[0],
+				Description:  description,
+				Tags:         splitCSV(tags),
+				DomainRef:    optionalString(cmd, "domain", domain),
+				ProjectRef:   optionalString(cmd, "project", project),
+				MilestoneRef: optionalString(cmd, "milestone", milestone),
+				AssigneeRef:  optionalString(cmd, "assignee", assignee),
+				DueAt:        optionalString(cmd, "due-at", dueAt),
 			})
 			if err != nil {
 				return err
@@ -72,6 +74,7 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
 	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
 	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
+	cmd.Flags().StringVar(&milestone, "milestone", "", "Set the task milestone reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	return cmd
@@ -82,6 +85,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 	var tags []string
 	var domain string
 	var project string
+	var milestone string
 	var assignee string
 	var dueBefore string
 	var dueAfter string
@@ -138,6 +142,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 				Statuses:       statuses,
 				DomainRef:      optionalString(cmd, "domain", domain),
 				ProjectRef:     optionalString(cmd, "project", project),
+				MilestoneRef:   optionalString(cmd, "milestone", milestone),
 				AssigneeRef:    optionalString(cmd, "assignee", assignee),
 				DueBefore:      optionalString(cmd, "due-before", dueBefore),
 				DueAfter:       optionalString(cmd, "due-after", dueAfter),
@@ -151,7 +156,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 			}
 
 			if opts.JSON {
-				filters := taskListFiltersMeta(statuses, tags, domain, project, assignee, dueBefore, dueAfter, search)
+				filters := taskListFiltersMeta(statuses, tags, domain, project, milestone, assignee, dueBefore, dueAfter, search)
 				if here {
 					filters["here"] = true
 				}
@@ -181,6 +186,7 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Filter by task tag; repeat to require multiple tags")
 	cmd.Flags().StringVar(&domain, "domain", "", "Filter by domain reference")
 	cmd.Flags().StringVar(&project, "project", "", "Filter by project reference")
+	cmd.Flags().StringVar(&milestone, "milestone", "", "Filter by milestone reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Filter by task assignee reference")
 	cmd.Flags().StringVar(&dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
 	cmd.Flags().StringVar(&dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
@@ -220,11 +226,12 @@ func newTaskShowCommand(opts *GlobalOptions) *cobra.Command {
 
 			_, err = fmt.Fprintf(
 				cmd.OutOrStdout(),
-				"handle=%s\nstatus=%s\ntitle=%s\ndescription=%s\n",
+				"handle=%s\nstatus=%s\ntitle=%s\ndescription=%s\nmilestone=%s\n",
 				task.Handle,
 				task.Status,
 				task.Title,
 				task.Description,
+				stringOrEmpty(task.MilestoneHandle),
 			)
 			return err
 		},
@@ -237,9 +244,11 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	var tags string
 	var domain string
 	var project string
+	var milestone string
 	var assignee string
 	var dueAt string
 	var status string
+	var clearMilestone bool
 	var acceptDefaultAssignee bool
 	var keepAssignee bool
 
@@ -260,6 +269,9 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if cmd.Flags().Changed("assignee") && (keepAssignee || acceptDefaultAssignee) {
 				return fmt.Errorf("grind update allows only one explicit assignee decision")
 			}
+			if clearMilestone && cmd.Flags().Changed("milestone") {
+				return fmt.Errorf("grind update allows only one of --milestone or --clear-milestone")
+			}
 
 			req := app.UpdateTaskRequest{Reference: args[0]}
 			if cmd.Flags().Changed("title") {
@@ -278,6 +290,9 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if cmd.Flags().Changed("project") {
 				req.ProjectRef = &project
 			}
+			if cmd.Flags().Changed("milestone") {
+				req.MilestoneRef = &milestone
+			}
 			if cmd.Flags().Changed("assignee") {
 				req.AssigneeRef = &assignee
 			}
@@ -287,10 +302,11 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if cmd.Flags().Changed("status") {
 				req.Status = &status
 			}
+			req.ClearMilestone = clearMilestone
 			req.AcceptDefaultAssignee = acceptDefaultAssignee
 			req.KeepAssignee = keepAssignee
 
-			if req.Title == nil && req.Description == nil && req.Tags == nil && req.DomainRef == nil && req.ProjectRef == nil && req.AssigneeRef == nil && req.DueAt == nil && req.Status == nil && !req.AcceptDefaultAssignee && !req.KeepAssignee {
+			if req.Title == nil && req.Description == nil && req.Tags == nil && req.DomainRef == nil && req.ProjectRef == nil && req.MilestoneRef == nil && req.AssigneeRef == nil && req.DueAt == nil && req.Status == nil && !req.ClearMilestone && !req.AcceptDefaultAssignee && !req.KeepAssignee {
 				return fmt.Errorf("grind update requires at least one changed field")
 			}
 
@@ -336,6 +352,8 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
 	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
 	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
+	cmd.Flags().StringVar(&milestone, "milestone", "", "Set the task milestone reference")
+	cmd.Flags().BoolVar(&clearMilestone, "clear-milestone", false, "Remove the task milestone assignment")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	cmd.Flags().StringVar(&status, "status", "", "Set the task status")
@@ -748,7 +766,7 @@ func normalizeRFC3339Flag(name string, value string, changed bool) (string, erro
 	return parsed.UTC().Format(time.RFC3339), nil
 }
 
-func taskListFiltersMeta(statuses []string, tags []string, domain string, project string, assignee string, dueBefore string, dueAfter string, search string) map[string]any {
+func taskListFiltersMeta(statuses []string, tags []string, domain string, project string, milestone string, assignee string, dueBefore string, dueAfter string, search string) map[string]any {
 	filters := map[string]any{}
 
 	if values := splitNonEmpty(statuses); len(values) > 0 {
@@ -762,6 +780,9 @@ func taskListFiltersMeta(statuses []string, tags []string, domain string, projec
 	}
 	if strings.TrimSpace(project) != "" {
 		filters["project"] = strings.TrimSpace(project)
+	}
+	if strings.TrimSpace(milestone) != "" {
+		filters["milestone"] = strings.TrimSpace(milestone)
 	}
 	if strings.TrimSpace(assignee) != "" {
 		filters["assignee"] = strings.TrimSpace(assignee)
@@ -787,4 +808,11 @@ func splitNonEmpty(values []string) []string {
 		}
 	}
 	return result
+}
+
+func stringOrEmpty(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

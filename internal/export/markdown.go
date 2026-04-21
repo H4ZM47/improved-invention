@@ -49,6 +49,7 @@ func writeMarkdownSummary(b *strings.Builder, bundle Bundle) {
 	fmt.Fprintf(b, "| Tasks | %d |\n", len(bundle.Tasks))
 	fmt.Fprintf(b, "| Domains | %d |\n", len(bundle.Domains))
 	fmt.Fprintf(b, "| Projects | %d |\n", len(bundle.Projects))
+	fmt.Fprintf(b, "| Milestones | %d |\n", len(bundle.Milestones))
 	fmt.Fprintf(b, "| Actors | %d |\n", len(bundle.Actors))
 	fmt.Fprintf(b, "| Links | %d |\n", len(bundle.Links))
 	fmt.Fprintf(b, "| Relationships | %d |\n", len(bundle.Relationships))
@@ -62,6 +63,9 @@ func writeMarkdownTask(b *strings.Builder, task app.TaskRecord) {
 	fmt.Fprintf(b, "- %s `%s` %s — `%s`\n", check, task.Handle, task.Title, task.Status)
 	if len(task.Tags) > 0 {
 		fmt.Fprintf(b, "    - tags: %s\n", strings.Join(task.Tags, ", "))
+	}
+	if task.MilestoneHandle != nil && *task.MilestoneHandle != "" {
+		fmt.Fprintf(b, "    - milestone: %s\n", *task.MilestoneHandle)
 	}
 	if task.AssigneeActorID != nil && *task.AssigneeActorID != "" {
 		fmt.Fprintf(b, "    - assignee: %s\n", *task.AssigneeActorID)

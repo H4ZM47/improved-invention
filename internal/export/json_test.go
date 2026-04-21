@@ -21,6 +21,7 @@ func TestEncodeJSONEmptyBundleIsDeterministic(t *testing.T) {
   "tasks": [],
   "domains": [],
   "projects": [],
+  "milestones": [],
   "actors": [],
   "links": [],
   "relationships": []
@@ -93,12 +94,16 @@ func TestEncodeJSONNilSlicesBecomeEmpty(t *testing.T) {
 
 func sampleTask() app.TaskRecord {
 	assignee := "actor-uuid"
+	milestoneID := "milestone-uuid"
+	milestoneHandle := "MILE-1"
 	return app.TaskRecord{
 		Handle:          "TASK-1042",
 		UUID:            "9e04c26b-fb8a-4f96-a3f5-6544d07d7757",
 		Title:           "Write initial CLI contract reference",
 		Description:     "Capture JSON envelopes.",
 		Status:          "active",
+		MilestoneID:     &milestoneID,
+		MilestoneHandle: &milestoneHandle,
 		AssigneeActorID: &assignee,
 		Tags:            []string{"cli", "contracts"},
 		CreatedAt:       "2026-04-21T03:00:00Z",

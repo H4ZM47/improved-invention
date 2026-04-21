@@ -94,6 +94,10 @@ func buildExportBundle(ctx context.Context, db *sql.DB) (export.Bundle, error) {
 	if err != nil {
 		return export.Bundle{}, fmt.Errorf("list projects: %w", err)
 	}
+	milestones, err := app.MilestoneManager{DB: db}.List(ctx, app.ListMilestonesRequest{})
+	if err != nil {
+		return export.Bundle{}, fmt.Errorf("list milestones: %w", err)
+	}
 	actors, err := app.ActorManager{DB: db}.List(ctx, app.ListActorsRequest{})
 	if err != nil {
 		return export.Bundle{}, fmt.Errorf("list actors: %w", err)
@@ -129,6 +133,7 @@ func buildExportBundle(ctx context.Context, db *sql.DB) (export.Bundle, error) {
 		Tasks:         tasks,
 		Domains:       domains,
 		Projects:      projects,
+		Milestones:    milestones,
 		Actors:        actors,
 		Links:         links,
 		Relationships: relationships,

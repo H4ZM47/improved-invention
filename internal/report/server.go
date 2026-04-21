@@ -70,6 +70,7 @@ type filterState struct {
 	Tags      []string `json:"tags"`
 	Domain    string   `json:"domain,omitempty"`
 	Project   string   `json:"project,omitempty"`
+	Milestone string   `json:"milestone,omitempty"`
 	Assignee  string   `json:"assignee,omitempty"`
 	DueBefore string   `json:"due_before,omitempty"`
 	DueAfter  string   `json:"due_after,omitempty"`
@@ -203,6 +204,7 @@ func parseListFilters(values url.Values) (app.ListTasksRequest, filterState) {
 		Tags:      tags,
 		Domain:    strings.TrimSpace(values.Get("domain")),
 		Project:   strings.TrimSpace(values.Get("project")),
+		Milestone: strings.TrimSpace(values.Get("milestone")),
 		Assignee:  strings.TrimSpace(values.Get("assignee")),
 		DueBefore: strings.TrimSpace(values.Get("due-before")),
 		DueAfter:  strings.TrimSpace(values.Get("due-after")),
@@ -216,6 +218,7 @@ func parseListFilters(values url.Values) (app.ListTasksRequest, filterState) {
 	}
 	req.DomainRef = stringPtrIfSet(filters.Domain)
 	req.ProjectRef = stringPtrIfSet(filters.Project)
+	req.MilestoneRef = stringPtrIfSet(filters.Milestone)
 	req.AssigneeRef = stringPtrIfSet(filters.Assignee)
 	req.DueBefore = stringPtrIfSet(filters.DueBefore)
 	req.DueAfter = stringPtrIfSet(filters.DueAfter)
@@ -264,6 +267,9 @@ func encodeFilterQuery(filters filterState) string {
 	}
 	if filters.Project != "" {
 		values.Set("project", filters.Project)
+	}
+	if filters.Milestone != "" {
+		values.Set("milestone", filters.Milestone)
 	}
 	if filters.Assignee != "" {
 		values.Set("assignee", filters.Assignee)
@@ -495,6 +501,9 @@ const taskListTemplate = `
         <label>Project
           <input type="text" name="project" value="{{.Filters.Project}}" placeholder="PROJECT-1 or uuid">
         </label>
+        <label>Milestone
+          <input type="text" name="milestone" value="{{.Filters.Milestone}}" placeholder="MILE-1 or uuid">
+        </label>
         <label>Assignee
           <input type="text" name="assignee" value="{{.Filters.Assignee}}" placeholder="actor handle or uuid">
         </label>
@@ -579,6 +588,7 @@ const taskDetailTemplate = `
       <h2>Classification</h2>
       {{if .Task.DomainID}}<p class="mono">Domain: {{.Task.DomainID}}</p>{{else}}<p>Unclassified domain.</p>{{end}}
       {{if .Task.ProjectID}}<p class="mono">Project: {{.Task.ProjectID}}</p>{{else}}<p>Unclassified project.</p>{{end}}
+      {{if .Task.MilestoneHandle}}<p class="mono">Milestone: {{.Task.MilestoneHandle}}</p>{{else}}<p>Unassigned milestone.</p>{{end}}
       {{if .Task.AssigneeActorID}}<p class="mono">Assignee: {{.Task.AssigneeActorID}}</p>{{else}}<p>Unassigned.</p>{{end}}
     </article>
 

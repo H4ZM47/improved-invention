@@ -13,46 +13,50 @@ import (
 
 // Task is the database-backed representation of a task record.
 type Task struct {
-	ID           int64
-	UUID         string
-	Handle       string
-	Title        string
-	Description  string
-	Status       string
-	DomainUUID   *string
-	ProjectUUID  *string
-	AssigneeUUID *string
-	DueAt        *string
-	Tags         []string
-	CreatedAt    string
-	UpdatedAt    string
-	ClosedAt     *string
+	ID              int64
+	UUID            string
+	Handle          string
+	Title           string
+	Description     string
+	Status          string
+	DomainUUID      *string
+	ProjectUUID     *string
+	MilestoneUUID   *string
+	MilestoneHandle *string
+	AssigneeUUID    *string
+	DueAt           *string
+	Tags            []string
+	CreatedAt       string
+	UpdatedAt       string
+	ClosedAt        *string
 }
 
 // TaskCreateInput describes the minimal fields required to create a task.
 type TaskCreateInput struct {
-	Title       string
-	Description string
-	Tags        []string
-	DomainRef   *string
-	ProjectRef  *string
-	AssigneeRef *string
-	DueAt       *string
-	ActorID     *int64
+	Title        string
+	Description  string
+	Tags         []string
+	DomainRef    *string
+	ProjectRef   *string
+	MilestoneRef *string
+	AssigneeRef  *string
+	DueAt        *string
+	ActorID      *int64
 }
 
 // TaskUpdateInput describes mutable task fields.
 type TaskUpdateInput struct {
-	Reference   string
-	Title       *string
-	Description *string
-	Tags        *[]string
-	DomainRef   *string
-	ProjectRef  *string
-	AssigneeRef *string
-	DueAt       *string
-	Status      *string
-	ActorID     *int64
+	Reference    string
+	Title        *string
+	Description  *string
+	Tags         *[]string
+	DomainRef    *string
+	ProjectRef   *string
+	MilestoneRef *string
+	AssigneeRef  *string
+	DueAt        *string
+	Status       *string
+	ActorID      *int64
 }
 
 // TaskListQuery describes the supported task-list filters in v1.
@@ -60,6 +64,7 @@ type TaskListQuery struct {
 	Statuses       []string
 	DomainRef      *string
 	ProjectRef     *string
+	MilestoneRef   *string
 	AssigneeRef    *string
 	DueBefore      *string
 	DueAfter       *string
@@ -92,6 +97,10 @@ func CreateTask(ctx context.Context, db *sql.DB, input TaskCreateInput) (Task, e
 	if err != nil {
 		return Task{}, err
 	}
+	milestoneID, _, _, err := resolveNullableMilestoneIDTx(ctx, tx, input.MilestoneRef)
+	if err != nil {
+		return Task{}, err
+	}
 	tagsJSON, err := json.Marshal(input.Tags)
 	if err != nil {
 		return Task{}, fmt.Errorf("marshal task tags: %w", err)
@@ -99,9 +108,9 @@ func CreateTask(ctx context.Context, db *sql.DB, input TaskCreateInput) (Task, e
 
 	taskUUID := uuid.NewString()
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO tasks(uuid, handle, title, description, status, domain_id, project_id, assignee_actor_id, due_at, tags)
-		VALUES (?, ?, ?, ?, 'backlog', ?, ?, ?, ?, ?)
-	`, taskUUID, handle, input.Title, input.Description, classification.domainID, classification.projectID, assigneeID, nullableValue(input.DueAt), string(tagsJSON))
+		INSERT INTO tasks(uuid, handle, title, description, status, domain_id, project_id, milestone_id, assignee_actor_id, due_at, tags)
+		VALUES (?, ?, ?, ?, 'backlog', ?, ?, ?, ?, ?, ?)
+	`, taskUUID, handle, input.Title, input.Description, classification.domainID, classification.projectID, milestoneID, assigneeID, nullableValue(input.DueAt), string(tagsJSON))
 	if err != nil {
 		return Task{}, fmt.Errorf("insert task: %w", err)
 	}
@@ -122,11 +131,12 @@ func CreateTask(ctx context.Context, db *sql.DB, input TaskCreateInput) (Task, e
 		ActorID:    input.ActorID,
 		EventType:  "create",
 		Payload: map[string]any{
-			"title":       task.Title,
-			"status":      task.Status,
-			"domain_id":   task.DomainUUID,
-			"project_id":  task.ProjectUUID,
-			"assignee_id": task.AssigneeUUID,
+			"title":        task.Title,
+			"status":       task.Status,
+			"domain_id":    task.DomainUUID,
+			"project_id":   task.ProjectUUID,
+			"milestone_id": task.MilestoneUUID,
+			"assignee_id":  task.AssigneeUUID,
 		},
 	}); err != nil {
 		return Task{}, err
@@ -186,6 +196,10 @@ func buildTaskListQuery(query TaskListQuery) (string, []any) {
 	}
 	if ref := trimmedPointer(query.ProjectRef); ref != nil {
 		where = append(where, "(p.handle = ? OR p.uuid = ?)")
+		args = append(args, *ref, *ref)
+	}
+	if ref := trimmedPointer(query.MilestoneRef); ref != nil {
+		where = append(where, "(m.handle = ? OR m.uuid = ?)")
 		args = append(args, *ref, *ref)
 	}
 	if ref := trimmedPointer(query.AssigneeRef); ref != nil {
@@ -309,6 +323,20 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 		nextTask.DomainUUID = classification.domainUUID
 		nextTask.ProjectUUID = classification.projectUUID
 	}
+	milestoneID, err := resolveEntityIDForUUID(ctx, tx, "milestones", current.MilestoneUUID)
+	if err != nil {
+		return Task{}, err
+	}
+	if input.MilestoneRef != nil {
+		var milestoneUUID *string
+		var milestoneHandle *string
+		milestoneID, milestoneUUID, milestoneHandle, err = resolveNullableMilestoneIDTx(ctx, tx, input.MilestoneRef)
+		if err != nil {
+			return Task{}, err
+		}
+		nextTask.MilestoneUUID = milestoneUUID
+		nextTask.MilestoneHandle = milestoneHandle
+	}
 	assigneeID, err := currentNullableActorID(ctx, tx, current.AssigneeUUID)
 	if err != nil {
 		return Task{}, err
@@ -351,7 +379,7 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 
 	query := `
 		UPDATE tasks
-		SET title = ?, description = ?, status = ?, domain_id = ?, project_id = ?, assignee_actor_id = ?, due_at = ?, tags = ?,
+		SET title = ?, description = ?, status = ?, domain_id = ?, project_id = ?, milestone_id = ?, assignee_actor_id = ?, due_at = ?, tags = ?,
 		    updated_at = CURRENT_TIMESTAMP,
 		    closed_at = CASE
 		      WHEN ? IN ('completed', 'cancelled') THEN COALESCE(closed_at, CURRENT_TIMESTAMP)
@@ -368,6 +396,7 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 		nextTask.Status,
 		domainID,
 		projectID,
+		milestoneID,
 		assigneeID,
 		nextTask.DueAt,
 		string(tagsJSON),
@@ -384,13 +413,14 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 
 	eventType := "update"
 	payload := map[string]any{
-		"title":       updated.Title,
-		"description": updated.Description,
-		"tags":        updated.Tags,
-		"domain_id":   updated.DomainUUID,
-		"project_id":  updated.ProjectUUID,
-		"assignee_id": updated.AssigneeUUID,
-		"due_at":      updated.DueAt,
+		"title":        updated.Title,
+		"description":  updated.Description,
+		"tags":         updated.Tags,
+		"domain_id":    updated.DomainUUID,
+		"project_id":   updated.ProjectUUID,
+		"milestone_id": updated.MilestoneUUID,
+		"assignee_id":  updated.AssigneeUUID,
+		"due_at":       updated.DueAt,
 	}
 	if current.Status != updated.Status {
 		eventType = "status_change"
@@ -424,7 +454,7 @@ func validateLifecycleTransition(from string, to string) error {
 
 	switch from {
 	case "backlog":
-		if to == "active" || to == "paused" || to == "blocked" {
+		if to == "active" || to == "paused" || to == "blocked" || to == "completed" || to == "cancelled" {
 			return nil
 		}
 	case "active", "paused", "blocked":
@@ -471,10 +501,11 @@ func appendEventTx(ctx context.Context, tx *sql.Tx, input eventInput) error {
 
 const taskSelectQuery = `
 	SELECT t.id, t.uuid, t.handle, t.title, t.description, t.status,
-	       d.uuid, p.uuid, a.uuid, t.due_at, t.tags, t.created_at, t.updated_at, t.closed_at
+	       d.uuid, p.uuid, m.uuid, m.handle, a.uuid, t.due_at, t.tags, t.created_at, t.updated_at, t.closed_at
 	FROM tasks t
 	LEFT JOIN domains d ON d.id = t.domain_id
 	LEFT JOIN projects p ON p.id = t.project_id
+	LEFT JOIN milestones m ON m.id = t.milestone_id
 	LEFT JOIN actors a ON a.id = t.assignee_actor_id
 `
 
@@ -498,6 +529,8 @@ func scanTask(scanner interface{ Scan(...any) error }) (Task, error) {
 	var task Task
 	var domainUUID sql.NullString
 	var projectUUID sql.NullString
+	var milestoneUUID sql.NullString
+	var milestoneHandle sql.NullString
 	var assigneeUUID sql.NullString
 	var dueAt sql.NullString
 	var tagsJSON string
@@ -512,6 +545,8 @@ func scanTask(scanner interface{ Scan(...any) error }) (Task, error) {
 		&task.Status,
 		&domainUUID,
 		&projectUUID,
+		&milestoneUUID,
+		&milestoneHandle,
 		&assigneeUUID,
 		&dueAt,
 		&tagsJSON,
@@ -531,6 +566,8 @@ func scanTask(scanner interface{ Scan(...any) error }) (Task, error) {
 
 	task.DomainUUID = nullableStringFromNull(domainUUID)
 	task.ProjectUUID = nullableStringFromNull(projectUUID)
+	task.MilestoneUUID = nullableStringFromNull(milestoneUUID)
+	task.MilestoneHandle = nullableStringFromNull(milestoneHandle)
 	task.AssigneeUUID = nullableStringFromNull(assigneeUUID)
 	task.DueAt = nullableStringFromNull(dueAt)
 	task.ClosedAt = nullableStringFromNull(closedAt)

@@ -18,6 +18,7 @@ type Bundle struct {
 	Tasks         []app.TaskRecord
 	Domains       []app.DomainRecord
 	Projects      []app.ProjectRecord
+	Milestones    []app.MilestoneRecord
 	Actors        []app.ActorRecord
 	Links         []app.LinkRecord
 	Relationships []app.RelationshipRecord

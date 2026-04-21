@@ -16,7 +16,7 @@ func TestEncodeCSVHeaderOnlyForEmptyBundle(t *testing.T) {
 		t.Fatalf("EncodeCSV() error = %v", err)
 	}
 
-	want := "handle,uuid,title,description,status,domain_id,project_id,assignee_actor_id,due_at,tags,created_at,updated_at,closed_at\n"
+	want := "handle,uuid,title,description,status,domain_id,project_id,milestone_id,milestone_handle,assignee_actor_id,due_at,tags,created_at,updated_at,closed_at\n"
 	if string(got) != want {
 		t.Fatalf("EncodeCSV() empty bundle mismatch\n got: %q\nwant: %q", got, want)
 	}
@@ -43,11 +43,17 @@ func TestEncodeCSVTaskRow(t *testing.T) {
 	if row[0] != "TASK-1042" {
 		t.Fatalf("row[handle] = %q, want TASK-1042", row[0])
 	}
-	if row[7] != "actor-uuid" {
-		t.Fatalf("row[assignee_actor_id] = %q, want actor-uuid", row[7])
+	if row[7] != "milestone-uuid" {
+		t.Fatalf("row[milestone_id] = %q, want milestone-uuid", row[7])
 	}
-	if row[9] != "cli|contracts" {
-		t.Fatalf("row[tags] = %q, want cli|contracts", row[9])
+	if row[8] != "MILE-1" {
+		t.Fatalf("row[milestone_handle] = %q, want MILE-1", row[8])
+	}
+	if row[9] != "actor-uuid" {
+		t.Fatalf("row[assignee_actor_id] = %q, want actor-uuid", row[9])
+	}
+	if row[11] != "cli|contracts" {
+		t.Fatalf("row[tags] = %q, want cli|contracts", row[11])
 	}
 }
 
@@ -68,7 +74,7 @@ func TestEncodeCSVNilPointersRenderEmpty(t *testing.T) {
 	}
 	records, _ := csv.NewReader(strings.NewReader(string(got))).ReadAll()
 	row := records[1]
-	for _, i := range []int{5, 6, 7, 8, 12} { // domain_id, project_id, assignee_actor_id, due_at, closed_at
+	for _, i := range []int{5, 6, 7, 8, 9, 10, 14} { // domain_id, project_id, milestone_id, milestone_handle, assignee_actor_id, due_at, closed_at
 		if row[i] != "" {
 			t.Fatalf("row[%d] = %q, want empty", i, row[i])
 		}
