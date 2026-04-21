@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/H4ZM47/improved-invention/internal/app"
+	"github.com/H4ZM47/task-cli/internal/app"
 )
 
 type jsonDocument struct {

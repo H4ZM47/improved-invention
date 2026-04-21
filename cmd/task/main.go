@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/H4ZM47/improved-invention/internal/cli"
+	"github.com/H4ZM47/task-cli/internal/cli"
 )
 
 var (

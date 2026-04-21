@@ -75,7 +75,7 @@ task time add TASK-1 \
 ```
 
 ```sh
-task link add TASK-1 repo https://github.com/H4ZM47/improved-invention \
+task link add TASK-1 repo https://github.com/H4ZM47/task-cli \
   --actor codex:agent-7 \
   --no-input \
   --json

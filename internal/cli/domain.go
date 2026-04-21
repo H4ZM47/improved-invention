@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/H4ZM47/improved-invention/internal/app"
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	"github.com/H4ZM47/task-cli/internal/app"
+	taskconfig "github.com/H4ZM47/task-cli/internal/config"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
 	"github.com/spf13/cobra"
 )
 

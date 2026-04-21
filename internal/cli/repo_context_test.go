@@ -12,15 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/H4ZM47/improved-invention/internal/app"
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
-	"github.com/H4ZM47/improved-invention/internal/gitctx"
+	"github.com/H4ZM47/task-cli/internal/app"
+	taskconfig "github.com/H4ZM47/task-cli/internal/config"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/task-cli/internal/gitctx"
 )
 
 func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.T) {
 	dbPath, taskHandle := seedClaimedTaskForRepoContextCLI(t)
-	repoDir := initCLIRepo(t, "https://github.com/H4ZM47/improved-invention.git")
+	repoDir := initCLIRepo(t, "https://github.com/H4ZM47/task-cli.git")
 	current := detectRepoContext(t, repoDir)
 
 	var stdout bytes.Buffer
@@ -119,7 +119,7 @@ func TestLinkAttachCurrentRepoCommandJSONCreatesRepoAndWorktreeLinks(t *testing.
 }
 
 func TestTaskListHereJSONScopesToCurrentRepoContextWithoutMutation(t *testing.T) {
-	currentRepoDir := initCLIRepo(t, "https://github.com/H4ZM47/improved-invention.git")
+	currentRepoDir := initCLIRepo(t, "https://github.com/H4ZM47/task-cli.git")
 	otherRepoDir := initCLIRepo(t, "https://github.com/example/other.git")
 	current := detectRepoContext(t, currentRepoDir)
 	other := detectRepoContext(t, otherRepoDir)

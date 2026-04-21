@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
 )
 
 // ViewManager provides service-layer saved-view workflows.

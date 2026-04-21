@@ -8,9 +8,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/H4ZM47/improved-invention/internal/app"
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
-	"github.com/H4ZM47/improved-invention/internal/gitctx"
+	"github.com/H4ZM47/task-cli/internal/app"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
+	"github.com/H4ZM47/task-cli/internal/gitctx"
 	"github.com/spf13/cobra"
 )
 

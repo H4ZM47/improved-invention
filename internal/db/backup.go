@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
+	taskconfig "github.com/H4ZM47/task-cli/internal/config"
 )
 
 // BackupDatabase writes a consistent full-fidelity SQLite artifact to outputPath.

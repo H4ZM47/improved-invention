@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
 )
 
 func TestTaskManagerCreateAndUpdateLifecycle(t *testing.T) {

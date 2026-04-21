@@ -1,4 +1,4 @@
-module github.com/H4ZM47/improved-invention
+module github.com/H4ZM47/task-cli
 
 go 1.26.1
 

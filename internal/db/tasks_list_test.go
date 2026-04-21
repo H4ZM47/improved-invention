@@ -95,14 +95,14 @@ func TestListTasksSupportsRepoAndWorktreeContextFilters(t *testing.T) {
 	if _, err := db.Exec(`
 		INSERT INTO external_links(uuid, task_id, link_type, target, label)
 		VALUES
-		  ('link-1', ?, 'repo', 'https://github.com/H4ZM47/improved-invention.git', 'repo'),
+		  ('link-1', ?, 'repo', 'https://github.com/H4ZM47/task-cli.git', 'repo'),
 		  ('link-2', ?, 'worktree', '/Users/alex/task', 'worktree')
 	`, attachedID, attachedID); err != nil {
 		t.Fatalf("seed external links failed: %v", err)
 	}
 
 	items, err := ListTasks(context.Background(), db, TaskListQuery{
-		RepoTarget:     stringPointer("https://github.com/H4ZM47/improved-invention.git"),
+		RepoTarget:     stringPointer("https://github.com/H4ZM47/task-cli.git"),
 		WorktreeTarget: stringPointer("/Users/alex/task"),
 	})
 	if err != nil {

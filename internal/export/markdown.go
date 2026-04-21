@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/H4ZM47/improved-invention/internal/app"
+	"github.com/H4ZM47/task-cli/internal/app"
 )
 
 // EncodeMarkdown serializes a Bundle as the built-in v1 Markdown format.

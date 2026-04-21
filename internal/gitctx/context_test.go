@@ -27,10 +27,10 @@ func TestDetectReturnsRepoAndRemoteContext(t *testing.T) {
 	if got, want := current.WorktreeRoot, canonicalRepoDir; got != want {
 		t.Fatalf("WorktreeRoot = %q, want %q", got, want)
 	}
-	if got, want := current.RemoteURL, "https://github.com/H4ZM47/improved-invention.git"; got != want {
+	if got, want := current.RemoteURL, "https://github.com/H4ZM47/task-cli.git"; got != want {
 		t.Fatalf("RemoteURL = %q, want %q", got, want)
 	}
-	if got, want := current.RepoTarget(), "https://github.com/H4ZM47/improved-invention.git"; got != want {
+	if got, want := current.RepoTarget(), "https://github.com/H4ZM47/task-cli.git"; got != want {
 		t.Fatalf("RepoTarget() = %q, want %q", got, want)
 	}
 }
@@ -56,7 +56,7 @@ func initGitRepo(t *testing.T) string {
 		{"git", "init", "-q", repoDir},
 		{"git", "-C", repoDir, "config", "user.name", "Codex"},
 		{"git", "-C", repoDir, "config", "user.email", "codex@example.com"},
-		{"git", "-C", repoDir, "remote", "add", "origin", "https://github.com/H4ZM47/improved-invention.git"},
+		{"git", "-C", repoDir, "remote", "add", "origin", "https://github.com/H4ZM47/task-cli.git"},
 	} {
 		if out, err := exec.Command(args[0], args[1:]...).CombinedOutput(); err != nil {
 			t.Fatalf("%v failed: %v\n%s", args, err, string(out))

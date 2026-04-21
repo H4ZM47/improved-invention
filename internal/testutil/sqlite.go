@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
-	taskdb "github.com/H4ZM47/improved-invention/internal/db"
+	taskconfig "github.com/H4ZM47/task-cli/internal/config"
+	taskdb "github.com/H4ZM47/task-cli/internal/db"
 )
 
 // OpenSQLiteDB opens a real migrated SQLite database in a temp directory.

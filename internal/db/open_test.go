@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	taskconfig "github.com/H4ZM47/improved-invention/internal/config"
+	taskconfig "github.com/H4ZM47/task-cli/internal/config"
 )
 
 func TestOpenAppliesRuntimePragmas(t *testing.T) {

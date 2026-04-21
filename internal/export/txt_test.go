@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/H4ZM47/improved-invention/internal/app"
+	"github.com/H4ZM47/task-cli/internal/app"
 )
 
 func TestEncodeTXTEmptyBundle(t *testing.T) {
