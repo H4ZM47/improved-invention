@@ -115,6 +115,33 @@ func TestUpdateSavedViewReplacesFiltersAndName(t *testing.T) {
 	}
 }
 
+func TestUpdateSavedViewRenameOnlyPreservesExistingFilters(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+	if _, err := CreateSavedView(context.Background(), db, SavedViewInput{
+		Name:        "Original",
+		FiltersJSON: `{"statuses":["backlog"]}`,
+	}); err != nil {
+		t.Fatalf("CreateSavedView() error = %v", err)
+	}
+
+	view, err := UpdateSavedView(context.Background(), db, "Original", SavedViewInput{
+		Name:        "Renamed",
+		FiltersJSON: `{"statuses":["backlog"]}`,
+	})
+	if err != nil {
+		t.Fatalf("UpdateSavedView() error = %v", err)
+	}
+
+	if got, want := view.Name, "Renamed"; got != want {
+		t.Fatalf("view.Name = %q, want %q", got, want)
+	}
+	if got, want := view.FiltersJSON, `{"statuses":["backlog"]}`; got != want {
+		t.Fatalf("view.FiltersJSON = %q, want %q", got, want)
+	}
+}
+
 func TestUpdateSavedViewMissingReturnsNotFound(t *testing.T) {
 	t.Parallel()
 

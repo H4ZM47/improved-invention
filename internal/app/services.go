@@ -418,9 +418,10 @@ type ShowViewRequest struct {
 }
 
 type UpdateViewRequest struct {
-	Name    string
-	NewName string
-	Filters SavedViewFilters
+	Name           string
+	NewName        string
+	Filters        SavedViewFilters
+	ReplaceFilters bool
 }
 
 type DeleteViewRequest struct {

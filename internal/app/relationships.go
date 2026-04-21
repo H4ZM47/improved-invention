@@ -246,9 +246,6 @@ func normalizeRelationship(rawType string, sourceTaskRef string, targetTaskRef s
 	switch strings.ToLower(strings.TrimSpace(rawType)) {
 	case "parent_of", "parent", "child_of", "child":
 		normalizedType = "parent_child"
-		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(rawType)), "child") {
-			return normalizedType, targetTaskRef, sourceTaskRef, nil
-		}
 		return normalizedType, sourceTaskRef, targetTaskRef, nil
 	case "blocks", "blocked_by":
 		normalizedType = "blocks"

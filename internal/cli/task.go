@@ -70,8 +70,8 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 
 	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
-	cmd.Flags().StringVar(&domain, "domain", "", "Set the grind domain reference")
-	cmd.Flags().StringVar(&project, "project", "", "Set the grind project reference")
+	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	return cmd
@@ -179,8 +179,8 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 
 	cmd.Flags().StringArrayVar(&statuses, "status", nil, "Filter by task status; repeat to allow multiple statuses")
 	cmd.Flags().StringArrayVar(&tags, "tag", nil, "Filter by task tag; repeat to require multiple tags")
-	cmd.Flags().StringVar(&domain, "domain", "", "Filter by grind domain reference")
-	cmd.Flags().StringVar(&project, "project", "", "Filter by grind project reference")
+	cmd.Flags().StringVar(&domain, "domain", "", "Filter by domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Filter by project reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Filter by task assignee reference")
 	cmd.Flags().StringVar(&dueBefore, "due-before", "", "Filter to tasks due on or before the RFC3339 timestamp")
 	cmd.Flags().StringVar(&dueAfter, "due-after", "", "Filter to tasks due on or after the RFC3339 timestamp")
@@ -334,8 +334,8 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&title, "title", "", "Set the task title")
 	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
-	cmd.Flags().StringVar(&domain, "domain", "", "Set the grind domain reference")
-	cmd.Flags().StringVar(&project, "project", "", "Set the grind project reference")
+	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
 	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	cmd.Flags().StringVar(&status, "status", "", "Set the task status")
@@ -348,7 +348,7 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "claim <task-ref>",
-		Short: "Acquire a grind claim",
+		Short: "Claim a task",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
@@ -385,7 +385,7 @@ func newTaskClaimCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskRenewCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "renew <task-ref>",
-		Short: "Renew an active grind claim",
+		Short: "Renew an active task claim",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
@@ -449,7 +449,7 @@ func newTaskStartCommand(opts *GlobalOptions) *cobra.Command {
 				})
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "task=%s\tstate=%s\telapsed_seconds=%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
 			return err
 		},
 	}
@@ -485,7 +485,7 @@ func newTaskPauseCommand(opts *GlobalOptions) *cobra.Command {
 				})
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "task=%s\tstate=%s\telapsed_seconds=%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
 			return err
 		},
 	}
@@ -521,7 +521,7 @@ func newTaskResumeCommand(opts *GlobalOptions) *cobra.Command {
 				})
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "task=%s\tstate=%s\telapsed_seconds=%d\n", session.TaskHandle, session.State, session.ElapsedSecond)
 			return err
 		},
 	}
@@ -530,7 +530,7 @@ func newTaskResumeCommand(opts *GlobalOptions) *cobra.Command {
 func newTaskReleaseCommand(opts *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "release <task-ref>",
-		Short: "Release an active grind claim",
+		Short: "Release an active task claim",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)

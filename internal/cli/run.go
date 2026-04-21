@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/H4ZM47/grind/internal/app"
@@ -93,6 +94,7 @@ func classifyFailure(err error, commandName string) failureClass {
 		failure.Code, failure.ExitCode = "FILTER_INVALID", 61
 	case isEntityNotFoundError(err):
 		failure.Code, failure.ExitCode = "ENTITY_NOT_FOUND", 20
+		failure.Message = normalizeEntityNotFoundMessage(err, commandName)
 	case strings.HasPrefix(commandName, "grind backup"):
 		failure.Code, failure.ExitCode = "BACKUP_FAILED", 72
 	case strings.HasPrefix(commandName, "grind restore"):
@@ -123,9 +125,11 @@ func isInvalidArgsError(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "unknown command") ||
 		strings.Contains(msg, "unknown flag") ||
+		strings.Contains(msg, "required flag(s)") ||
 		strings.Contains(msg, "accepts ") ||
 		strings.Contains(msg, "requires at least") ||
 		strings.Contains(msg, "requires exactly") ||
+		strings.Contains(msg, "requires --") ||
 		strings.Contains(msg, "argument")
 }
 
@@ -167,6 +171,43 @@ func isEntityNotFoundError(err error) bool {
 	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, " not found") || strings.HasSuffix(msg, "not found")
+}
+
+var findEntityNoRowsPattern = regexp.MustCompile(`^find ([a-z_ ]+) "([^"]+)": sql: no rows in result set$`)
+
+func normalizeEntityNotFoundMessage(err error, commandName string) string {
+	if err == nil {
+		return "requested record was not found"
+	}
+
+	msg := strings.TrimSpace(err.Error())
+	if matches := findEntityNoRowsPattern.FindStringSubmatch(msg); len(matches) == 3 {
+		return fmt.Sprintf("%s %q was not found", strings.TrimSpace(matches[1]), matches[2])
+	}
+
+	if errors.Is(err, taskdb.ErrSavedViewNotFound) {
+		if idx := strings.LastIndex(msg, ":"); idx >= 0 && idx+1 < len(msg) {
+			return fmt.Sprintf("saved view %s was not found", strings.TrimSpace(msg[idx+1:]))
+		}
+		return "saved view was not found"
+	}
+
+	switch {
+	case strings.HasPrefix(commandName, "grind link remove"):
+		return "link was not found"
+	case strings.HasPrefix(commandName, "grind relationship remove"):
+		return "relationship was not found"
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return "requested record was not found"
+	}
+
+	if lower := strings.ToLower(msg); strings.Contains(lower, "not found") {
+		return msg
+	}
+
+	return "requested record was not found"
 }
 
 func isFilterError(err error) bool {

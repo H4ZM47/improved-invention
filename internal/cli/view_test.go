@@ -141,6 +141,36 @@ func TestViewUpdateReplacesFiltersAndCanRename(t *testing.T) {
 	}
 }
 
+func TestViewRenameWithoutFilterFlagsPreservesStoredFilters(t *testing.T) {
+	t.Parallel()
+
+	dbPath := seedViewFixtures(t)
+
+	runViewSubcommand(t, dbPath, false, "create", "Backlog", "--status", "backlog")
+	runViewSubcommand(t, dbPath, false, "update", "Backlog", "--rename", "Backlog Renamed")
+
+	showJSON := runViewSubcommand(t, dbPath, true, "show", "Backlog Renamed")
+	var payload struct {
+		Data struct {
+			View struct {
+				Name    string `json:"name"`
+				Filters struct {
+					Statuses []string `json:"statuses"`
+				} `json:"filters"`
+			} `json:"view"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(showJSON), &payload); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v\noutput: %s", err, showJSON)
+	}
+	if got, want := payload.Data.View.Name, "Backlog Renamed"; got != want {
+		t.Fatalf("view.Name = %q, want %q", got, want)
+	}
+	if got, want := payload.Data.View.Filters.Statuses, []string{"backlog"}; len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("view.Filters.Statuses = %v, want %v", got, want)
+	}
+}
+
 func TestViewApplyMissingViewReturnsError(t *testing.T) {
 	t.Parallel()
 
