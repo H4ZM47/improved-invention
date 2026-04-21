@@ -1,0 +1,10 @@
+{
+  "command": "task view apply",
+  "error": {
+    "code": "VIEW_NOT_FOUND",
+    "details": {},
+    "exit_code": 60,
+    "message": "saved view not found: \"Missing\""
+  },
+  "ok": false
+}

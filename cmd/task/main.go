@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/H4ZM47/improved-invention/internal/cli"
@@ -20,8 +19,5 @@ func main() {
 		Date:    date,
 	}
 
-	if err := cli.Execute(build); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	os.Exit(cli.Run(build, os.Args[1:], os.Stdout, os.Stderr))
 }

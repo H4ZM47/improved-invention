@@ -20,11 +20,17 @@ type GlobalOptions struct {
 
 // Execute runs the Task CLI root command.
 func Execute(build BuildInfo) error {
-	return NewRootCommand(build).Execute()
+	cmd, _ := newRootCommandWithOptions(build)
+	return cmd.Execute()
 }
 
 // NewRootCommand constructs the root command tree.
 func NewRootCommand(build BuildInfo) *cobra.Command {
+	cmd, _ := newRootCommandWithOptions(build)
+	return cmd
+}
+
+func newRootCommandWithOptions(build BuildInfo) (*cobra.Command, *GlobalOptions) {
 	opts := &GlobalOptions{}
 
 	cmd := &cobra.Command{
@@ -69,7 +75,7 @@ func NewRootCommand(build BuildInfo) *cobra.Command {
 		newVersionCommand(build, opts),
 	)
 
-	return cmd
+	return cmd, opts
 }
 
 func newGroupCommand(use string, short string) *cobra.Command {

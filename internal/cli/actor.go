@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
 	"github.com/H4ZM47/improved-invention/internal/app"
@@ -141,7 +140,5 @@ func actorManagerFromOptions(ctx context.Context, opts *GlobalOptions) (taskconf
 }
 
 func writeJSON(cmd *cobra.Command, payload map[string]any) error {
-	encoder := json.NewEncoder(cmd.OutOrStdout())
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(payload)
+	return writeJSONTo(cmd.OutOrStdout(), payload)
 }
