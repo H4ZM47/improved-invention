@@ -50,11 +50,28 @@ task version
 task config show
 ```
 
+### Homebrew
+
+Task CLI is published through the `H4ZM47/task` tap.
+
+Recommended install flow:
+
+```sh
+brew tap H4ZM47/task
+brew install task
+```
+
+Direct install also works:
+
+```sh
+brew install H4ZM47/task/task
+```
+
 ### Package-manager outputs
 
 The repo also generates release metadata for:
 
-- Homebrew via a tap-ready formula
+- Homebrew via the `H4ZM47/task` tap
 - winget via release-ready manifests
 - Debian and RPM package artifacts
 
@@ -232,7 +249,7 @@ That script:
 To sync the generated Homebrew formula into a tap checkout:
 
 ```sh
-HOMEBREW_TAP_DIR=/path/to/homebrew-task-cli ./scripts/sync-homebrew-tap.sh
+HOMEBREW_TAP_DIR=/path/to/homebrew-task ./scripts/sync-homebrew-tap.sh
 ```
 
 ## Documentation
