@@ -1,0 +1,2 @@
+-- Placeholder migration asset.
+-- The first real schema migration will replace this bootstrap-only file.

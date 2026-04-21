@@ -66,8 +66,8 @@ func NewRootCommand(build BuildInfo) *cobra.Command {
 		newGroupCommand("report", "Serve read-only reports"),
 		newGroupCommand("backup", "Create full-fidelity backups"),
 		newGroupCommand("restore", "Restore from a full-fidelity backup"),
-		newGroupCommand("config", "Inspect local configuration"),
-		newVersionCommand(build),
+		newConfigCommand(opts),
+		newVersionCommand(build, opts),
 	)
 
 	return cmd
