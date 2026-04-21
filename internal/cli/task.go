@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/H4ZM47/improved-invention/internal/app"
@@ -14,8 +17,13 @@ import (
 
 func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 	var description string
+	var tags string
+	var domain string
+	var project string
+	var assignee string
+	var dueAt string
 
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "create <title>",
 		Short: "Create a task",
 		Args:  cobra.ExactArgs(1),
@@ -29,6 +37,11 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			task, err := manager.Create(cmd.Context(), app.CreateTaskRequest{
 				Title:       args[0],
 				Description: description,
+				Tags:        splitCSV(tags),
+				DomainRef:   optionalString(cmd, "domain", domain),
+				ProjectRef:  optionalString(cmd, "project", project),
+				AssigneeRef: optionalString(cmd, "assignee", assignee),
+				DueAt:       optionalString(cmd, "due-at", dueAt),
 			})
 			if err != nil {
 				return err
@@ -51,6 +64,14 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			return err
 		},
 	}
+
+	cmd.Flags().StringVar(&description, "description", "", "Set the task description")
+	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
+	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
+	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
+	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
+	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
+	return cmd
 }
 
 func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
@@ -140,8 +161,11 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	var tags string
 	var domain string
 	var project string
+	var assignee string
 	var dueAt string
 	var status string
+	var acceptDefaultAssignee bool
+	var keepAssignee bool
 
 	cmd := &cobra.Command{
 		Use:   "update <task-ref>",
@@ -153,6 +177,13 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 				return err
 			}
 			defer db.Close()
+
+			if keepAssignee && acceptDefaultAssignee {
+				return fmt.Errorf("task update allows only one of --keep-assignee or --accept-default-assignee")
+			}
+			if cmd.Flags().Changed("assignee") && (keepAssignee || acceptDefaultAssignee) {
+				return fmt.Errorf("task update allows only one explicit assignee decision")
+			}
 
 			req := app.UpdateTaskRequest{Reference: args[0]}
 			if cmd.Flags().Changed("title") {
@@ -171,18 +202,39 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if cmd.Flags().Changed("project") {
 				req.ProjectRef = &project
 			}
+			if cmd.Flags().Changed("assignee") {
+				req.AssigneeRef = &assignee
+			}
 			if cmd.Flags().Changed("due-at") {
 				req.DueAt = &dueAt
 			}
 			if cmd.Flags().Changed("status") {
 				req.Status = &status
 			}
+			req.AcceptDefaultAssignee = acceptDefaultAssignee
+			req.KeepAssignee = keepAssignee
 
-			if req.Title == nil && req.Description == nil && req.Tags == nil && req.DomainRef == nil && req.ProjectRef == nil && req.DueAt == nil && req.Status == nil {
+			if req.Title == nil && req.Description == nil && req.Tags == nil && req.DomainRef == nil && req.ProjectRef == nil && req.AssigneeRef == nil && req.DueAt == nil && req.Status == nil && !req.AcceptDefaultAssignee && !req.KeepAssignee {
 				return fmt.Errorf("task update requires at least one changed field")
 			}
 
 			task, err := manager.Update(cmd.Context(), req)
+			var decisionErr *app.AssignmentDecisionRequiredError
+			if err != nil && errors.As(err, &decisionErr) {
+				if opts.NoInput {
+					return err
+				}
+
+				promptedAssignee, promptedKeep, promptErr := promptAssigneeDecision(cmd.ErrOrStderr(), cmd.InOrStdin(), *decisionErr)
+				if promptErr != nil {
+					return promptErr
+				}
+
+				req.KeepAssignee = promptedKeep
+				req.AcceptDefaultAssignee = !promptedKeep && promptedAssignee == nil
+				req.AssigneeRef = promptedAssignee
+				task, err = manager.Update(cmd.Context(), req)
+			}
 			if err != nil {
 				return err
 			}
@@ -208,8 +260,11 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 	cmd.Flags().StringVar(&tags, "tags", "", "Set comma-separated task tags")
 	cmd.Flags().StringVar(&domain, "domain", "", "Set the task domain reference")
 	cmd.Flags().StringVar(&project, "project", "", "Set the task project reference")
+	cmd.Flags().StringVar(&assignee, "assignee", "", "Set the task assignee")
 	cmd.Flags().StringVar(&dueAt, "due-at", "", "Set the task due timestamp")
 	cmd.Flags().StringVar(&status, "status", "", "Set the task status")
+	cmd.Flags().BoolVar(&acceptDefaultAssignee, "accept-default-assignee", false, "Accept the inherited default assignee during reclassification")
+	cmd.Flags().BoolVar(&keepAssignee, "keep-assignee", false, "Keep the current assignee during reclassification")
 
 	return cmd
 }
@@ -431,4 +486,47 @@ func splitCSV(raw string) []string {
 		}
 	}
 	return values
+}
+
+func promptAssigneeDecision(out io.Writer, in io.Reader, decision app.AssignmentDecisionRequiredError) (*string, bool, error) {
+	target := "classification"
+	if decision.ProjectHandle != nil {
+		target = "project " + *decision.ProjectHandle
+	} else if decision.DomainHandle != nil {
+		target = "domain " + *decision.DomainHandle
+	}
+
+	defaultLabel := "the default assignee"
+	if decision.DefaultAssigneeHandle != nil {
+		defaultLabel = *decision.DefaultAssigneeHandle
+	}
+
+	if _, err := fmt.Fprintf(out, "Changing %s requires an assignee decision.\n[d] accept default (%s)\n[k] keep current assignee\n[a] enter a different assignee\nChoice: ", target, defaultLabel); err != nil {
+		return nil, false, err
+	}
+
+	reader := bufio.NewReader(in)
+	choice, err := reader.ReadString('\n')
+	if err != nil {
+		return nil, false, err
+	}
+
+	switch strings.ToLower(strings.TrimSpace(choice)) {
+	case "d", "default", "":
+		return nil, false, nil
+	case "k", "keep":
+		return nil, true, nil
+	case "a", "assignee":
+		if _, err := fmt.Fprint(out, "Assignee: "); err != nil {
+			return nil, false, err
+		}
+		value, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, false, err
+		}
+		trimmed := strings.TrimSpace(value)
+		return &trimmed, false, nil
+	default:
+		return nil, false, fmt.Errorf("invalid assignee decision %q", strings.TrimSpace(choice))
+	}
 }
