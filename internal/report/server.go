@@ -144,17 +144,10 @@ func (s *Server) handleTaskDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	links, err := s.links.List(r.Context(), app.ListLinksRequest{TaskRef: ref})
+	externalLinks, err := s.links.ListExternal(r.Context(), app.ListLinksRequest{TaskRef: ref})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("list task links: %v", err), http.StatusInternalServerError)
 		return
-	}
-	externalLinks := make([]app.LinkRecord, 0, len(links))
-	for _, link := range links {
-		if link.TargetKind != "external" {
-			continue
-		}
-		externalLinks = append(externalLinks, link)
 	}
 	relationships, err := s.relationships.List(r.Context(), app.ListRelationshipsRequest{TaskRef: ref})
 	if err != nil {

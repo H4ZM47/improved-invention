@@ -357,7 +357,7 @@ func normalizeFilterMessage(err error) string {
 	msg := strings.TrimSpace(err.Error())
 	switch {
 	case strings.Contains(msg, "invalid --status value"):
-		return msg + "; use one of: backlog, active, paused, blocked, completed, cancelled"
+		return msg + "; use one of: " + strings.Join(taskdb.ValidStatuses(), ", ")
 	case strings.Contains(msg, "parse --due-before"):
 		return "`--due-before` must be a valid RFC3339 timestamp"
 	case strings.Contains(msg, "parse --due-after"):

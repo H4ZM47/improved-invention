@@ -106,7 +106,9 @@ func newViewCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			savedFilters, err := filters.toSavedViewFilters()
 			if err != nil {
@@ -143,7 +145,9 @@ func newViewUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			savedFilters, err := filters.toSavedViewFilters()
 			if err != nil {
@@ -180,7 +184,9 @@ func newViewListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			views, err := manager.List(ctx, app.ListViewsRequest{})
 			if err != nil {
@@ -218,7 +224,9 @@ func newViewShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			view, err := manager.Show(ctx, app.ShowViewRequest{Name: args[0]})
 			if err != nil {
@@ -242,7 +250,9 @@ func newViewApplyCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			view, err := app.ViewManager{DB: db}.Show(ctx, app.ShowViewRequest{Name: args[0]})
 			if err != nil {
@@ -288,7 +298,9 @@ func newViewDeleteCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := manager.Delete(ctx, app.DeleteViewRequest{Name: args[0]}); err != nil {
 				return err

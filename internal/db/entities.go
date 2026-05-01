@@ -178,7 +178,9 @@ func ListDomains(ctx context.Context, db *sql.DB) ([]Domain, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list domains: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var domains []Domain
 	for rows.Next() {
@@ -394,7 +396,9 @@ func ListProjects(ctx context.Context, db *sql.DB) ([]Project, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var projects []Project
 	for rows.Next() {

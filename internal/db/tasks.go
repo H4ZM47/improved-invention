@@ -157,7 +157,9 @@ func ListTasks(ctx context.Context, db *sql.DB, query TaskListQuery) ([]Task, er
 	if err != nil {
 		return nil, fmt.Errorf("list tasks: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var tasks []Task
 	for rows.Next() {
@@ -352,6 +354,12 @@ func UpdateTask(ctx context.Context, db *sql.DB, input TaskUpdateInput) (Task, e
 		return Task{}, err
 	}
 
+	if input.Status != nil && isClosedStatus(*input.Status) {
+		if err := closeTaskSessionIfActiveTx(ctx, tx, current, *input.ActorID); err != nil {
+			return Task{}, err
+		}
+	}
+
 	if isClosedStatus(nextTask.Status) {
 		now := "CURRENT_TIMESTAMP"
 		_ = now
@@ -453,16 +461,16 @@ func validateLifecycleTransition(from string, to string) error {
 	}
 
 	switch from {
-	case "backlog":
-		if to == "active" || to == "paused" || to == "blocked" || to == "completed" || to == "cancelled" {
+	case StatusBacklog:
+		if to == StatusActive || to == StatusPaused || to == StatusBlocked || to == StatusCompleted || to == StatusCancelled {
 			return nil
 		}
-	case "active", "paused", "blocked":
-		if to == "backlog" || to == "active" || to == "paused" || to == "blocked" || to == "completed" || to == "cancelled" {
+	case StatusActive, StatusPaused, StatusBlocked:
+		if to == StatusBacklog || to == StatusActive || to == StatusPaused || to == StatusBlocked || to == StatusCompleted || to == StatusCancelled {
 			return nil
 		}
-	case "completed", "cancelled":
-		if to == "backlog" || to == "active" || to == "paused" || to == "blocked" {
+	case StatusCompleted, StatusCancelled:
+		if to == StatusBacklog || to == StatusActive || to == StatusPaused || to == StatusBlocked {
 			return nil
 		}
 	}
@@ -471,7 +479,7 @@ func validateLifecycleTransition(from string, to string) error {
 }
 
 func isClosedStatus(status string) bool {
-	return status == "completed" || status == "cancelled"
+	return status == StatusCompleted || status == StatusCancelled
 }
 
 type eventInput struct {

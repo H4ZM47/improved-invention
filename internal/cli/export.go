@@ -49,7 +49,9 @@ func newExportFormatCommand(opts *GlobalOptions, use, short string, encode bundl
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			bundle, err := buildExportBundle(ctx, db)
 			if err != nil {
@@ -105,33 +107,13 @@ func buildExportBundle(ctx context.Context, db *sql.DB) (export.Bundle, error) {
 
 	linkMgr := app.LinkManager{DB: db}
 	relMgr := app.RelationshipManager{DB: db}
-	var links []app.LinkRecord
-	var relationships []app.RelationshipRecord
-	seenRelationships := make(map[string]struct{})
-
-	for _, task := range tasks {
-		taskLinks, err := linkMgr.List(ctx, app.ListLinksRequest{TaskRef: task.Handle})
-		if err != nil {
-			return export.Bundle{}, fmt.Errorf("list links for task %s: %w", task.Handle, err)
-		}
-		for _, link := range taskLinks {
-			if link.TargetKind != "external" {
-				continue
-			}
-			links = append(links, link)
-		}
-
-		taskRels, err := relMgr.List(ctx, app.ListRelationshipsRequest{TaskRef: task.Handle})
-		if err != nil {
-			return export.Bundle{}, fmt.Errorf("list relationships for task %s: %w", task.Handle, err)
-		}
-		for _, rel := range taskRels {
-			if _, ok := seenRelationships[rel.UUID]; ok {
-				continue
-			}
-			seenRelationships[rel.UUID] = struct{}{}
-			relationships = append(relationships, rel)
-		}
+	links, err := linkMgr.ListAllExternal(ctx)
+	if err != nil {
+		return export.Bundle{}, fmt.Errorf("list links: %w", err)
+	}
+	relationships, err := relMgr.ListAll(ctx)
+	if err != nil {
+		return export.Bundle{}, fmt.Errorf("list relationships: %w", err)
 	}
 
 	return export.Bundle{

@@ -83,6 +83,60 @@ func TestUpdateTaskCanSetAndClearMilestoneAssignment(t *testing.T) {
 	}
 }
 
+func TestUpdateTaskRollsBackAutoSessionCloseWhenTerminalUpdateFails(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openTestDB(t)
+	actorID := insertActor(t, db, "actor-1", "ACT-1", "human", "", "alex")
+	task, err := CreateTask(ctx, db, TaskCreateInput{
+		Title: "Atomic terminal update",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+	insertOpenClaim(t, db, task.ID, actorID)
+
+	if err := StartTaskSession(ctx, db, SessionEventInput{
+		TaskReference: task.Handle,
+		ActorID:       actorID,
+	}); err != nil {
+		t.Fatalf("StartTaskSession() error = %v", err)
+	}
+
+	emptyTitle := ""
+	completed := StatusCompleted
+	_, err = UpdateTask(ctx, db, TaskUpdateInput{
+		Reference: task.Handle,
+		Title:     &emptyTitle,
+		Status:    &completed,
+		ActorID:   &actorID,
+	})
+	if err == nil {
+		t.Fatal("UpdateTask() error = nil, want title constraint failure")
+	}
+
+	var closedEvents int
+	if err := db.QueryRow(`
+		SELECT count(*)
+		FROM events
+		WHERE entity_type = 'task' AND entity_uuid = ? AND event_type = 'session_closed'
+	`, task.UUID).Scan(&closedEvents); err != nil {
+		t.Fatalf("count session_closed events failed: %v", err)
+	}
+	if closedEvents != 0 {
+		t.Fatalf("session_closed events = %d, want 0 after rollback", closedEvents)
+	}
+
+	found, err := FindTask(ctx, db, task.Handle)
+	if err != nil {
+		t.Fatalf("FindTask() error = %v", err)
+	}
+	if found.Status != StatusBacklog {
+		t.Fatalf("task status = %q, want %q", found.Status, StatusBacklog)
+	}
+}
+
 func TestListTasksSupportsMilestoneFilter(t *testing.T) {
 	t.Parallel()
 

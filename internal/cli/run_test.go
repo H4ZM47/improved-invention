@@ -344,7 +344,9 @@ func TestRunUpdateWithoutClaimUsesDescriptiveMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	taskManager := app.TaskManager{DB: db, HumanName: "alex"}
 	task, err := taskManager.Create(context.Background(), app.CreateTaskRequest{Title: "Needs claim"})

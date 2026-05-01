@@ -31,7 +31,9 @@ func newServeCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			srv, err := report.NewServer(report.Dependencies{
 				Tasks: app.TaskManager{
@@ -55,7 +57,9 @@ func newServeCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("start report server on %s: %w", addr, err)
 			}
-			defer listener.Close()
+			defer func() {
+				_ = listener.Close()
+			}()
 
 			server := &http.Server{
 				Handler:           srv.Handler(),

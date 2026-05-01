@@ -90,6 +90,47 @@ func TestTaskManagerUpdateRequiresClaim(t *testing.T) {
 	}
 }
 
+func TestTaskManagerCurrentActorRefCanBeHumanName(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openActorManagerTestDB(t)
+	manager := TaskManager{
+		DB:              db,
+		HumanName:       "runner",
+		CurrentActorRef: "alex",
+	}
+
+	task, err := manager.Create(ctx, CreateTaskRequest{
+		Title: "Use explicit human actor",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if _, err := manager.Claim(ctx, ClaimTaskRequest{
+		Reference: task.Handle,
+		Lease:     time.Hour,
+	}); err != nil {
+		t.Fatalf("Claim() error = %v", err)
+	}
+
+	active := "active"
+	if _, err := manager.Update(ctx, UpdateTaskRequest{
+		Reference: task.Handle,
+		Status:    &active,
+	}); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	claim, err := taskdb.FindActor(ctx, db, "alex")
+	if err != nil {
+		t.Fatalf("FindActor(alex) error = %v", err)
+	}
+	if claim.ExternalID != "alex" {
+		t.Fatalf("explicit actor ExternalID = %q, want alex", claim.ExternalID)
+	}
+}
+
 func TestTaskManagerCreateInheritsMostSpecificDefaultAssignee(t *testing.T) {
 	t.Parallel()
 

@@ -100,7 +100,9 @@ func ListMilestones(ctx context.Context, db *sql.DB) ([]Milestone, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list milestones: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var milestones []Milestone
 	for rows.Next() {

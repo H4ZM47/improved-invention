@@ -37,7 +37,9 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			resolvedDescription, err := resolveDescriptionInput(
 				cmd,
@@ -117,7 +119,9 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := validateTaskListStatuses(statuses); err != nil {
 				return err
@@ -222,7 +226,9 @@ func newTaskShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			task, err := manager.Show(cmd.Context(), app.ShowTaskRequest{Reference: args[0]})
 			if err != nil {
@@ -278,7 +284,9 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if keepAssignee && acceptDefaultAssignee {
 				return fmt.Errorf("grind update allows only one of --keep-assignee or --accept-default-assignee")
@@ -422,7 +430,9 @@ func newClaimAcquireCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			claim, err := manager.Claim(cmd.Context(), app.ClaimTaskRequest{
 				Reference: args[0],
@@ -459,7 +469,9 @@ func newClaimRenewCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			claim, err := manager.RenewClaim(cmd.Context(), app.RenewClaimRequest{
 				Reference: args[0],
@@ -496,7 +508,9 @@ func newClaimReleaseCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := manager.ReleaseClaim(cmd.Context(), app.ReleaseClaimRequest{Reference: args[0]}); err != nil {
 				return err
@@ -527,7 +541,9 @@ func newClaimUnlockCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := manager.Unlock(cmd.Context(), app.UnlockTaskRequest{Reference: args[0]}); err != nil {
 				return err
@@ -549,74 +565,61 @@ func newClaimUnlockCommand(opts *GlobalOptions) *cobra.Command {
 }
 
 func newTaskOpenCommand(opts *GlobalOptions) *cobra.Command {
-	return newTaskStatusCommand(opts, "open", "Reopen a task", "backlog")
+	return newTaskStatusCommand(opts, "open", "Reopen a task", taskdb.StatusBacklog)
 }
 
 func newTaskCloseCommand(opts *GlobalOptions) *cobra.Command {
-	return newTaskStatusCommand(opts, "close", "Close a task", "completed")
+	return newTaskStatusCommand(opts, "close", "Close a task", taskdb.StatusCompleted)
 }
 
 func newTaskCancelCommand(opts *GlobalOptions) *cobra.Command {
-	return newTaskStatusCommand(opts, "cancel", "Cancel a task", "cancelled")
+	return newTaskStatusCommand(opts, "cancel", "Cancel a task", taskdb.StatusCancelled)
 }
 
 func newTaskStatusCommand(opts *GlobalOptions, use, short, statusValue string) *cobra.Command {
-	var retiredStatus string
-
-	cmd := &cobra.Command{
-		Use:   use + " <task-ref>",
-		Short: short,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Flags().Changed("status") {
-				return taskLifecycleMigrationError(use, args[0], retiredStatus)
-			}
-
+	return newLifecycleStatusCommand(opts, lifecycleStatusCommandConfig{
+		Use:             use,
+		Short:           short,
+		RefName:         "task-ref",
+		CommandName:     "grind " + use,
+		StatusValue:     statusValue,
+		RetiredFlagHelp: "Retired task lifecycle flag; use the explicit open, close, or cancel verbs",
+		MigrationError:  taskLifecycleMigrationError,
+		Run: func(cmd *cobra.Command, reference string, status string) (lifecycleStatusResult, error) {
 			_, db, manager, err := taskManagerFromOptions(cmd.Context(), opts)
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			task, err := manager.Update(cmd.Context(), app.UpdateTaskRequest{
-				Reference: args[0],
-				Status:    &statusValue,
+				Reference: reference,
+				Status:    &status,
 			})
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind " + use,
-					"data": map[string]any{
-						"task": task,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", task.Handle, task.Status, task.Title)
-			return err
+			return lifecycleStatusResult{
+				DataKey: "task",
+				Data:    task,
+				Line:    fmt.Sprintf("%s\t%s\t%s\n", task.Handle, task.Status, task.Title),
+			}, nil
 		},
-	}
-
-	cmd.Flags().StringVar(&retiredStatus, "status", "", "Retired task lifecycle flag; use the explicit open, close, or cancel verbs")
-	_ = cmd.Flags().MarkHidden("status")
-	return cmd
+	})
 }
 
 func taskLifecycleMigrationError(use, handle, status string) error {
 	switch status {
-	case "backlog":
+	case taskdb.StatusBacklog:
 		return fmt.Errorf("`grind close %s --status backlog` was removed; use `grind open %s`", handle, handle)
-	case "completed":
+	case taskdb.StatusCompleted:
 		if use != "close" {
 			return fmt.Errorf("`grind close %s --status completed` was removed; use `grind close %s`", handle, handle)
 		}
 		return fmt.Errorf("`grind %s %s --status completed` was removed; use `grind close %s`", use, handle, handle)
-	case "cancelled":
+	case taskdb.StatusCancelled:
 		return fmt.Errorf("`grind close %s --status cancelled` was removed; use `grind cancel %s`", handle, handle)
 	default:
 		return fmt.Errorf("the `--status` flag was removed from `grind %s`; use `grind open`, `grind close`, or `grind cancel`", use)
@@ -791,21 +794,12 @@ func promptTaskDescription(out io.Writer, in io.Reader, title string) (string, e
 }
 
 func validateTaskListStatuses(statuses []string) error {
-	valid := map[string]struct{}{
-		"backlog":   {},
-		"active":    {},
-		"paused":    {},
-		"blocked":   {},
-		"completed": {},
-		"cancelled": {},
-	}
-
 	for _, status := range statuses {
 		trimmed := strings.TrimSpace(status)
 		if trimmed == "" {
 			continue
 		}
-		if _, ok := valid[trimmed]; !ok {
+		if !taskdb.IsValidStatus(trimmed) {
 			return fmt.Errorf("invalid --status value %q", trimmed)
 		}
 	}

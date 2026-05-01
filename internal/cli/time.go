@@ -42,7 +42,9 @@ func newTimeStartCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			session, err := manager.StartSession(cmd.Context(), app.StartTaskSessionRequest{
 				Reference: args[0],
@@ -78,7 +80,9 @@ func newTimePauseCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			session, err := manager.PauseSession(cmd.Context(), app.PauseTaskSessionRequest{
 				Reference: args[0],
@@ -114,7 +118,9 @@ func newTimeResumeCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			session, err := manager.ResumeSession(cmd.Context(), app.ResumeTaskSessionRequest{
 				Reference: args[0],
@@ -169,7 +175,9 @@ func newTimeEditCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			entries, err := manager.ListManualTime(cmd.Context(), app.ListManualTimeRequest{Reference: args[0]})
 			if err != nil {

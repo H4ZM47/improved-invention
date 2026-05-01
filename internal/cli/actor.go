@@ -30,7 +30,9 @@ func newActorListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if _, err := manager.BootstrapConfiguredHumanActor(cmd.Context()); err != nil {
 				return err
@@ -83,7 +85,9 @@ func newActorShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			actor, err := manager.Show(cmd.Context(), app.ShowActorRequest{
 				Reference: args[0],

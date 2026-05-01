@@ -64,6 +64,20 @@ func (m RelationshipManager) List(ctx context.Context, req ListRelationshipsRequ
 	return records, nil
 }
 
+// ListAll lists every task relationship.
+func (m RelationshipManager) ListAll(ctx context.Context) ([]RelationshipRecord, error) {
+	relationships, err := taskdb.ListRelationships(ctx, m.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]RelationshipRecord, 0, len(relationships))
+	for _, relationship := range relationships {
+		records = append(records, toRelationshipRecord(relationship))
+	}
+	return records, nil
+}
+
 // Remove removes a normalized relationship between two tasks.
 func (m RelationshipManager) Remove(ctx context.Context, req RemoveRelationshipRequest) error {
 	actorID, err := m.currentActorID(ctx)
@@ -133,7 +147,7 @@ func (m LinkManager) Create(ctx context.Context, req CreateLinkRequest) (LinkRec
 
 // AttachCurrentRepoContext explicitly links the current repo/worktree context to a task.
 func (m LinkManager) AttachCurrentRepoContext(ctx context.Context, req AttachCurrentRepoContextRequest) (AttachCurrentRepoContextResult, error) {
-	existing, err := m.List(ctx, ListLinksRequest{TaskRef: req.TaskRef})
+	existing, err := m.ListExternal(ctx, ListLinksRequest{TaskRef: req.TaskRef})
 	if err != nil {
 		return AttachCurrentRepoContextResult{}, err
 	}
@@ -185,6 +199,34 @@ func (m LinkManager) AttachCurrentRepoContext(ctx context.Context, req AttachCur
 	}
 
 	return result, nil
+}
+
+// ListExternal lists task-scoped external links without task relationships.
+func (m LinkManager) ListExternal(ctx context.Context, req ListLinksRequest) ([]LinkRecord, error) {
+	links, err := taskdb.ListExternalLinksForTask(ctx, m.DB, req.TaskRef)
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]LinkRecord, 0, len(links))
+	for _, link := range links {
+		records = append(records, toExternalLinkRecord(link))
+	}
+	return records, nil
+}
+
+// ListAllExternal lists every external task link.
+func (m LinkManager) ListAllExternal(ctx context.Context) ([]LinkRecord, error) {
+	links, err := taskdb.ListExternalLinks(ctx, m.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	records := make([]LinkRecord, 0, len(links))
+	for _, link := range links {
+		records = append(records, toExternalLinkRecord(link))
+	}
+	return records, nil
 }
 
 // List lists task-scoped external links.

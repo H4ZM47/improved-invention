@@ -66,7 +66,9 @@ func seedReportServeFixtures(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	if _, err := (app.ActorManager{DB: db, HumanName: "alex"}).BootstrapConfiguredHumanActor(context.Background()); err != nil {
 		t.Fatalf("BootstrapConfiguredHumanActor() error = %v", err)
@@ -102,7 +104,7 @@ func waitForReportServer(t *testing.T, reportURL string) {
 	for time.Now().Before(deadline) {
 		res, err := http.Get(reportURL)
 		if err == nil {
-			res.Body.Close()
+			_ = res.Body.Close()
 			if res.StatusCode == http.StatusOK {
 				return
 			}

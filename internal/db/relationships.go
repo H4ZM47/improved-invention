@@ -133,7 +133,37 @@ func ListRelationshipsForTask(ctx context.Context, db *sql.DB, taskReference str
 	if err != nil {
 		return nil, fmt.Errorf("list relationships: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var relationships []Relationship
+	for rows.Next() {
+		relationship, err := scanRelationship(rows)
+		if err != nil {
+			return nil, err
+		}
+		relationships = append(relationships, relationship)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate relationships: %w", err)
+	}
+
+	return relationships, nil
+}
+
+// ListRelationships returns every task-to-task relationship ordered by most recently created first.
+func ListRelationships(ctx context.Context, db *sql.DB) ([]Relationship, error) {
+	rows, err := db.QueryContext(ctx, relationshipSelectQuery+`
+		WHERE r.target_kind = ?
+		ORDER BY r.created_at DESC, r.id DESC
+	`, LinkTargetTask)
+	if err != nil {
+		return nil, fmt.Errorf("list relationships: %w", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var relationships []Relationship
 	for rows.Next() {

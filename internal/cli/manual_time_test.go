@@ -213,7 +213,9 @@ func createManualTimeEntryViaManager(t *testing.T, dbPath string, taskHandle str
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	manager := app.TaskManager{
 		DB:        db,
@@ -244,7 +246,9 @@ func seedClaimedTaskForManualTimeCLI(t *testing.T) (dbPath string, taskHandle st
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	manager := app.TaskManager{
 		DB:        db,
@@ -301,7 +305,9 @@ func queryLatestManualTimeEventPayload(t *testing.T, dbPath string, taskHandle s
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	var taskUUID string
 	if err := db.QueryRow(`SELECT uuid FROM tasks WHERE handle = ?`, taskHandle).Scan(&taskUUID); err != nil {

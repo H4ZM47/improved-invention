@@ -112,7 +112,9 @@ func TestSchemaSeedsHandleSequences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("query handle_sequences failed: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	got := map[string]int{}
 	for rows.Next() {
@@ -137,6 +139,27 @@ func TestSchemaSeedsHandleSequences(t *testing.T) {
 	for entity, next := range want {
 		if got[entity] != next {
 			t.Fatalf("handle_sequences[%q] = %d, want %d", entity, got[entity], next)
+		}
+	}
+}
+
+func TestSchemaCreatesLinkReadIndexes(t *testing.T) {
+	t.Parallel()
+
+	db := openTestDB(t)
+
+	for _, name := range []string{
+		"links_task_source_lookup_idx",
+		"links_task_target_lookup_idx",
+		"links_external_source_lookup_idx",
+		"links_external_global_lookup_idx",
+	} {
+		var got string
+		if err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?`, name).Scan(&got); err != nil {
+			t.Fatalf("lookup index %s failed: %v", name, err)
+		}
+		if got != name {
+			t.Fatalf("index lookup = %q, want %q", got, name)
 		}
 	}
 }
