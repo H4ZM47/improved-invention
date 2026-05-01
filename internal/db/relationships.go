@@ -150,6 +150,32 @@ func ListRelationshipsForTask(ctx context.Context, db *sql.DB, taskReference str
 	return relationships, nil
 }
 
+// ListRelationships returns every task-to-task relationship ordered by most recently created first.
+func ListRelationships(ctx context.Context, db *sql.DB) ([]Relationship, error) {
+	rows, err := db.QueryContext(ctx, relationshipSelectQuery+`
+		WHERE r.target_kind = ?
+		ORDER BY r.created_at DESC, r.id DESC
+	`, LinkTargetTask)
+	if err != nil {
+		return nil, fmt.Errorf("list relationships: %w", err)
+	}
+	defer rows.Close()
+
+	var relationships []Relationship
+	for rows.Next() {
+		relationship, err := scanRelationship(rows)
+		if err != nil {
+			return nil, err
+		}
+		relationships = append(relationships, relationship)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate relationships: %w", err)
+	}
+
+	return relationships, nil
+}
+
 // RemoveRelationship deletes a relationship and records an event on the source task.
 func RemoveRelationship(ctx context.Context, db *sql.DB, input RelationshipRemoveInput) (Relationship, error) {
 	if err := validateRelationshipType(input.RelationshipType); err != nil {

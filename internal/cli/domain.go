@@ -233,71 +233,56 @@ func newDomainUpdateCommand(opts *GlobalOptions) *cobra.Command {
 }
 
 func newDomainOpenCommand(opts *GlobalOptions) *cobra.Command {
-	return newDomainStatusCommand(opts, "open", "Reopen a domain", "backlog")
+	return newDomainStatusCommand(opts, "open", "Reopen a domain", taskdb.StatusBacklog)
 }
 
 func newDomainCloseCommand(opts *GlobalOptions) *cobra.Command {
-	return newDomainStatusCommand(opts, "close", "Close a domain", "completed")
+	return newDomainStatusCommand(opts, "close", "Close a domain", taskdb.StatusCompleted)
 }
 
 func newDomainCancelCommand(opts *GlobalOptions) *cobra.Command {
-	return newDomainStatusCommand(opts, "cancel", "Cancel a domain", "cancelled")
+	return newDomainStatusCommand(opts, "cancel", "Cancel a domain", taskdb.StatusCancelled)
 }
 
 func newDomainStatusCommand(opts *GlobalOptions, use, short, statusValue string) *cobra.Command {
-	var retiredStatus string
-
-	cmd := &cobra.Command{
-		Use:   use + " <domain-ref>",
-		Short: short,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Flags().Changed("status") {
-				return domainLifecycleMigrationError(use, args[0], retiredStatus)
-			}
-
+	return newLifecycleStatusCommand(opts, lifecycleStatusCommandConfig{
+		Use:             use,
+		Short:           short,
+		RefName:         "domain-ref",
+		CommandName:     "grind domain " + use,
+		StatusValue:     statusValue,
+		RetiredFlagHelp: "Retired domain lifecycle flag; use the explicit open, close, or cancel verbs",
+		MigrationError:  domainLifecycleMigrationError,
+		Run: func(cmd *cobra.Command, reference string, status string) (lifecycleStatusResult, error) {
 			_, db, manager, err := domainManagerFromOptions(cmd.Context(), opts)
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
 			defer db.Close()
 
 			domain, err := manager.Update(cmd.Context(), app.UpdateDomainRequest{
-				Reference: args[0],
-				Status:    &statusValue,
+				Reference: reference,
+				Status:    &status,
 			})
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind domain " + use,
-					"data": map[string]any{
-						"domain": domain,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", domain.Handle, domain.Status, domain.Name)
-			return err
+			return lifecycleStatusResult{
+				DataKey: "domain",
+				Data:    domain,
+				Line:    fmt.Sprintf("%s\t%s\t%s\n", domain.Handle, domain.Status, domain.Name),
+			}, nil
 		},
-	}
-
-	cmd.Flags().StringVar(&retiredStatus, "status", "", "Retired domain lifecycle flag; use the explicit open, close, or cancel verbs")
-	_ = cmd.Flags().MarkHidden("status")
-	return cmd
+	})
 }
 
 func domainLifecycleMigrationError(use, handle, status string) error {
 	switch status {
-	case "backlog":
+	case taskdb.StatusBacklog:
 		return fmt.Errorf("`grind domain close %s --status backlog` was removed; use `grind domain open %s`", handle, handle)
-	case "completed":
+	case taskdb.StatusCompleted:
 		return fmt.Errorf("`grind domain close %s --status completed` was removed; use `grind domain close %s`", handle, handle)
-	case "cancelled":
+	case taskdb.StatusCancelled:
 		return fmt.Errorf("`grind domain close %s --status cancelled` was removed; use `grind domain cancel %s`", handle, handle)
 	default:
 		return fmt.Errorf("the `--status` flag was removed from `grind domain %s`; use `grind domain open`, `grind domain close`, or `grind domain cancel`", use)

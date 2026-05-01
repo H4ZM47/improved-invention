@@ -208,51 +208,59 @@ func newMilestoneUpdateCommand(opts *GlobalOptions) *cobra.Command {
 }
 
 func newMilestoneOpenCommand(opts *GlobalOptions) *cobra.Command {
-	return newMilestoneStatusCommand(opts, "open", "Reopen a milestone", "backlog")
+	return newMilestoneStatusCommand(opts, "open", "Reopen a milestone", taskdb.StatusBacklog)
 }
 
 func newMilestoneCloseCommand(opts *GlobalOptions) *cobra.Command {
-	return newMilestoneStatusCommand(opts, "close", "Close a milestone", "completed")
+	return newMilestoneStatusCommand(opts, "close", "Close a milestone", taskdb.StatusCompleted)
 }
 
 func newMilestoneCancelCommand(opts *GlobalOptions) *cobra.Command {
-	return newMilestoneStatusCommand(opts, "cancel", "Cancel a milestone", "cancelled")
+	return newMilestoneStatusCommand(opts, "cancel", "Cancel a milestone", taskdb.StatusCancelled)
 }
 
 func newMilestoneStatusCommand(opts *GlobalOptions, use, short, status string) *cobra.Command {
-	return &cobra.Command{
-		Use:   use + " <milestone-ref>",
-		Short: short,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+	return newLifecycleStatusCommand(opts, lifecycleStatusCommandConfig{
+		Use:             use,
+		Short:           short,
+		RefName:         "milestone-ref",
+		CommandName:     "grind milestone " + use,
+		StatusValue:     status,
+		RetiredFlagHelp: "Retired milestone lifecycle flag; use the explicit open, close, or cancel verbs",
+		MigrationError:  milestoneLifecycleMigrationError,
+		Run: func(cmd *cobra.Command, reference string, status string) (lifecycleStatusResult, error) {
 			_, db, manager, err := milestoneManagerFromOptions(cmd.Context(), opts)
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
 			defer db.Close()
 
 			milestone, err := manager.Update(cmd.Context(), app.UpdateMilestoneRequest{
-				Reference: args[0],
+				Reference: reference,
 				Status:    &status,
 			})
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind milestone " + use,
-					"data": map[string]any{
-						"milestone": milestone,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", milestone.Handle, milestone.Status, milestone.Name)
-			return err
+			return lifecycleStatusResult{
+				DataKey: "milestone",
+				Data:    milestone,
+				Line:    fmt.Sprintf("%s\t%s\t%s\n", milestone.Handle, milestone.Status, milestone.Name),
+			}, nil
 		},
+	})
+}
+
+func milestoneLifecycleMigrationError(use, handle, status string) error {
+	switch status {
+	case taskdb.StatusBacklog:
+		return fmt.Errorf("`grind milestone close %s --status backlog` was removed; use `grind milestone open %s`", handle, handle)
+	case taskdb.StatusCompleted:
+		return fmt.Errorf("`grind milestone close %s --status completed` was removed; use `grind milestone close %s`", handle, handle)
+	case taskdb.StatusCancelled:
+		return fmt.Errorf("`grind milestone close %s --status cancelled` was removed; use `grind milestone cancel %s`", handle, handle)
+	default:
+		return fmt.Errorf("the `--status` flag was removed from `grind milestone %s`; use `grind milestone open`, `grind milestone close`, or `grind milestone cancel`", use)
 	}
 }
 

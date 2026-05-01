@@ -94,6 +94,18 @@ func recordTaskSessionEvent(ctx context.Context, db *sql.DB, input SessionEventI
 		return err
 	}
 
+	if err := appendTaskSessionEventTx(ctx, tx, task, input.ActorID, eventType); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit %s transaction: %w", eventType, err)
+	}
+
+	return nil
+}
+
+func appendTaskSessionEventTx(ctx context.Context, tx *sql.Tx, task Task, actorID int64, eventType string) error {
 	events, err := loadTaskSessionEvents(ctx, tx, task.UUID)
 	if err != nil {
 		return err
@@ -111,7 +123,7 @@ func recordTaskSessionEvent(ctx context.Context, db *sql.DB, input SessionEventI
 	if err := appendEventTx(ctx, tx, eventInput{
 		EntityType: "task",
 		EntityUUID: task.UUID,
-		ActorID:    &input.ActorID,
+		ActorID:    &actorID,
 		EventType:  eventType,
 		Payload: map[string]any{
 			"task_handle": task.Handle,
@@ -121,11 +133,24 @@ func recordTaskSessionEvent(ctx context.Context, db *sql.DB, input SessionEventI
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit %s transaction: %w", eventType, err)
+	return nil
+}
+
+func closeTaskSessionIfActiveTx(ctx context.Context, tx *sql.Tx, task Task, actorID int64) error {
+	events, err := loadTaskSessionEvents(ctx, tx, task.UUID)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	_, state, _, err := replayTaskSessionEvents(events, sessionNow().UTC())
+	if err != nil {
+		return err
+	}
+	if state == taskSessionIdle {
+		return nil
+	}
+
+	return appendTaskSessionEventTx(ctx, tx, task, actorID, "session_closed")
 }
 
 type sessionEventQuerier interface {

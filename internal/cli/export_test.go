@@ -38,13 +38,35 @@ func seedExportFixtures(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("CreateMilestone() error = %v", err)
 	}
-	if _, err := (app.TaskManager{DB: db, HumanName: "alex"}).Create(context.Background(), app.CreateTaskRequest{
+	taskManager := app.TaskManager{DB: db, HumanName: "alex"}
+	task, err := taskManager.Create(context.Background(), app.CreateTaskRequest{
 		Title:        "Write CLI contract",
 		Tags:         []string{"cli"},
 		DomainRef:    &domain.Handle,
 		MilestoneRef: &milestone.Handle,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
+	}
+	otherTask, err := taskManager.Create(context.Background(), app.CreateTaskRequest{
+		Title: "Review exported links",
+	})
+	if err != nil {
+		t.Fatalf("CreateTask(other) error = %v", err)
+	}
+	if _, err := (app.LinkManager{DB: db, HumanName: "alex"}).Create(context.Background(), app.CreateLinkRequest{
+		TaskRef: task.Handle,
+		Type:    "url",
+		Target:  "https://example.com/spec",
+	}); err != nil {
+		t.Fatalf("CreateLink() error = %v", err)
+	}
+	if _, err := (app.RelationshipManager{DB: db, HumanName: "alex"}).Create(context.Background(), app.CreateRelationshipRequest{
+		SourceTaskRef: task.Handle,
+		Type:          "blocks",
+		TargetTaskRef: otherTask.Handle,
+	}); err != nil {
+		t.Fatalf("CreateRelationship() error = %v", err)
 	}
 
 	return dbPath
@@ -78,6 +100,15 @@ func TestExportJSONToStdoutIncludesSeededTask(t *testing.T) {
 		Milestones []struct {
 			Name string `json:"name"`
 		} `json:"milestones"`
+		Links []struct {
+			Type   string `json:"type"`
+			Target string `json:"target"`
+		} `json:"links"`
+		Relationships []struct {
+			Type       string `json:"type"`
+			SourceTask string `json:"source_task"`
+			TargetTask string `json:"target_task"`
+		} `json:"relationships"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &doc); err != nil {
 		t.Fatalf("json.Unmarshal() error = %v\noutput: %s", err, stdout.String())
@@ -85,17 +116,23 @@ func TestExportJSONToStdoutIncludesSeededTask(t *testing.T) {
 	if doc.Version != 1 {
 		t.Fatalf("doc.Version = %d, want 1", doc.Version)
 	}
-	if len(doc.Tasks) != 1 || doc.Tasks[0].Title != "Write CLI contract" {
-		t.Fatalf("doc.Tasks = %+v, want one task with title 'Write CLI contract'", doc.Tasks)
+	if len(doc.Tasks) != 2 || doc.Tasks[0].Title != "Review exported links" || doc.Tasks[1].Title != "Write CLI contract" {
+		t.Fatalf("doc.Tasks = %+v, want exported tasks ordered by most recent update", doc.Tasks)
 	}
-	if got, want := doc.Tasks[0].MilestoneHandle, "MILE-1"; got != want {
-		t.Fatalf("doc.Tasks[0].MilestoneHandle = %q, want %q", got, want)
+	if got, want := doc.Tasks[1].MilestoneHandle, "MILE-1"; got != want {
+		t.Fatalf("doc.Tasks[1].MilestoneHandle = %q, want %q", got, want)
 	}
 	if len(doc.Domains) != 1 || doc.Domains[0].Name != "Work" {
 		t.Fatalf("doc.Domains = %+v, want one domain named 'Work'", doc.Domains)
 	}
 	if len(doc.Milestones) != 1 || doc.Milestones[0].Name != "v1.0.2" {
 		t.Fatalf("doc.Milestones = %+v, want one milestone named 'v1.0.2'", doc.Milestones)
+	}
+	if len(doc.Links) != 1 || doc.Links[0].Type != "url" || doc.Links[0].Target != "https://example.com/spec" {
+		t.Fatalf("doc.Links = %+v, want one exported url link", doc.Links)
+	}
+	if len(doc.Relationships) != 1 || doc.Relationships[0].Type != "blocks" {
+		t.Fatalf("doc.Relationships = %+v, want one exported blocks relationship", doc.Relationships)
 	}
 }
 

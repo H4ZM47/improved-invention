@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -136,16 +135,6 @@ func (m TaskManager) Update(ctx context.Context, req UpdateTaskRequest) (TaskRec
 		}
 	} else if assigneeRef == nil && req.AcceptDefaultAssignee && classification.defaultAssigneeHandle != nil {
 		assigneeRef = classification.defaultAssigneeHandle
-	}
-
-	if req.Status != nil && isTerminalStatus(*req.Status) && actorID != nil {
-		err := taskdb.CloseTaskSession(ctx, m.DB, taskdb.SessionEventInput{
-			TaskReference: req.Reference,
-			ActorID:       *actorID,
-		})
-		if err != nil && !errors.Is(err, taskdb.ErrSessionNotActive) {
-			return TaskRecord{}, err
-		}
 	}
 
 	milestoneRef := req.MilestoneRef
@@ -554,10 +543,6 @@ func handleProjectUpdateReference(project *taskdb.Project, requestedProjectRef *
 	}
 	handle := project.Handle
 	return &handle
-}
-
-func isTerminalStatus(status string) bool {
-	return status == "completed" || status == "cancelled"
 }
 
 func toClaimRecord(claim taskdb.Claim) ClaimRecord {

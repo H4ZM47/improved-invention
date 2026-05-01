@@ -242,71 +242,56 @@ func newProjectUpdateCommand(opts *GlobalOptions) *cobra.Command {
 }
 
 func newProjectOpenCommand(opts *GlobalOptions) *cobra.Command {
-	return newProjectStatusCommand(opts, "open", "Reopen a project", "backlog")
+	return newProjectStatusCommand(opts, "open", "Reopen a project", taskdb.StatusBacklog)
 }
 
 func newProjectCloseCommand(opts *GlobalOptions) *cobra.Command {
-	return newProjectStatusCommand(opts, "close", "Close a project", "completed")
+	return newProjectStatusCommand(opts, "close", "Close a project", taskdb.StatusCompleted)
 }
 
 func newProjectCancelCommand(opts *GlobalOptions) *cobra.Command {
-	return newProjectStatusCommand(opts, "cancel", "Cancel a project", "cancelled")
+	return newProjectStatusCommand(opts, "cancel", "Cancel a project", taskdb.StatusCancelled)
 }
 
 func newProjectStatusCommand(opts *GlobalOptions, use, short, statusValue string) *cobra.Command {
-	var retiredStatus string
-
-	cmd := &cobra.Command{
-		Use:   use + " <project-ref>",
-		Short: short,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Flags().Changed("status") {
-				return projectLifecycleMigrationError(use, args[0], retiredStatus)
-			}
-
+	return newLifecycleStatusCommand(opts, lifecycleStatusCommandConfig{
+		Use:             use,
+		Short:           short,
+		RefName:         "project-ref",
+		CommandName:     "grind project " + use,
+		StatusValue:     statusValue,
+		RetiredFlagHelp: "Retired project lifecycle flag; use the explicit open, close, or cancel verbs",
+		MigrationError:  projectLifecycleMigrationError,
+		Run: func(cmd *cobra.Command, reference string, status string) (lifecycleStatusResult, error) {
 			_, db, manager, err := projectManagerFromOptions(cmd.Context(), opts)
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
 			defer db.Close()
 
 			project, err := manager.Update(cmd.Context(), app.UpdateProjectRequest{
-				Reference: args[0],
-				Status:    &statusValue,
+				Reference: reference,
+				Status:    &status,
 			})
 			if err != nil {
-				return err
+				return lifecycleStatusResult{}, err
 			}
-
-			if opts.JSON {
-				return writeJSON(cmd, map[string]any{
-					"ok":      true,
-					"command": "grind project " + use,
-					"data": map[string]any{
-						"project": project,
-					},
-					"meta": map[string]any{},
-				})
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", project.Handle, project.Status, project.Name)
-			return err
+			return lifecycleStatusResult{
+				DataKey: "project",
+				Data:    project,
+				Line:    fmt.Sprintf("%s\t%s\t%s\n", project.Handle, project.Status, project.Name),
+			}, nil
 		},
-	}
-
-	cmd.Flags().StringVar(&retiredStatus, "status", "", "Retired project lifecycle flag; use the explicit open, close, or cancel verbs")
-	_ = cmd.Flags().MarkHidden("status")
-	return cmd
+	})
 }
 
 func projectLifecycleMigrationError(use, handle, status string) error {
 	switch status {
-	case "backlog":
+	case taskdb.StatusBacklog:
 		return fmt.Errorf("`grind project close %s --status backlog` was removed; use `grind project open %s`", handle, handle)
-	case "completed":
+	case taskdb.StatusCompleted:
 		return fmt.Errorf("`grind project close %s --status completed` was removed; use `grind project close %s`", handle, handle)
-	case "cancelled":
+	case taskdb.StatusCancelled:
 		return fmt.Errorf("`grind project close %s --status cancelled` was removed; use `grind project cancel %s`", handle, handle)
 	default:
 		return fmt.Errorf("the `--status` flag was removed from `grind project %s`; use `grind project open`, `grind project close`, or `grind project cancel`", use)

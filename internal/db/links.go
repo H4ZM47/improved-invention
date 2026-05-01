@@ -155,6 +155,32 @@ func ListExternalLinksForTask(ctx context.Context, db *sql.DB, taskReference str
 	return links, nil
 }
 
+// ListExternalLinks returns every external task link ordered by most recently created first.
+func ListExternalLinks(ctx context.Context, db *sql.DB) ([]ExternalLink, error) {
+	rows, err := db.QueryContext(ctx, externalLinkSelectQuery+`
+		WHERE l.target_kind = ?
+		ORDER BY l.created_at DESC, l.id DESC
+	`, LinkTargetExternal)
+	if err != nil {
+		return nil, fmt.Errorf("list external links: %w", err)
+	}
+	defer rows.Close()
+
+	var links []ExternalLink
+	for rows.Next() {
+		link, err := scanExternalLink(rows)
+		if err != nil {
+			return nil, err
+		}
+		links = append(links, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate external links: %w", err)
+	}
+
+	return links, nil
+}
+
 // RemoveExternalLink deletes a task-scoped link and records an event on the task.
 func RemoveExternalLink(ctx context.Context, db *sql.DB, input TaskExternalLinkRemoveInput) (ExternalLink, error) {
 	tx, err := db.BeginTx(ctx, nil)
