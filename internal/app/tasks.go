@@ -336,6 +336,12 @@ func (m TaskManager) resolveCurrentActorID(ctx context.Context) (*int64, error) 
 			}
 			return lookupActorID(ctx, m.DB, actor.Handle)
 		}
+
+		human, err := taskdb.EnsureHumanActor(ctx, m.DB, m.CurrentActorRef)
+		if err != nil {
+			return nil, err
+		}
+		return lookupActorID(ctx, m.DB, human.Handle)
 	}
 
 	human, err := actorManager.BootstrapConfiguredHumanActor(ctx)

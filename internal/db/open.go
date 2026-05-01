@@ -24,6 +24,8 @@ func Open(ctx context.Context, cfg taskconfig.Resolved) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite database: %w", err)
 	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
