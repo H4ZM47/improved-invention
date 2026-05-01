@@ -226,7 +226,9 @@ func seedClaimedTaskForRepoContextCLI(t *testing.T) (dbPath string, taskHandle s
 
 	dbPath = filepath.Join(t.TempDir(), "task.db")
 	db := openRepoContextTestDB(t, dbPath)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	manager := app.TaskManager{
 		DB:        db,
@@ -259,7 +261,9 @@ func seedRepoContextListScenario(
 
 	dbPath = filepath.Join(t.TempDir(), "task.db")
 	db := openRepoContextTestDB(t, dbPath)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	manager := app.TaskManager{
 		DB:        db,
@@ -342,7 +346,9 @@ func listExternalLinksForTask(t *testing.T, dbPath string, taskHandle string) []
 	t.Helper()
 
 	db := openRepoContextTestDB(t, dbPath)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	links, err := taskdb.ListExternalLinksForTask(context.Background(), db, taskHandle)
 	if err != nil {
@@ -355,7 +361,9 @@ func countExternalLinks(t *testing.T, dbPath string) int {
 	t.Helper()
 
 	db := openRepoContextTestDB(t, dbPath)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	var count int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM links WHERE target_kind = 'external'`).Scan(&count); err != nil {

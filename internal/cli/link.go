@@ -44,7 +44,9 @@ func newLinkRepoCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			cwd, err := os.Getwd()
 			if err != nil {
@@ -105,7 +107,9 @@ func newLinkAddCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			link, err := manager.Create(cmd.Context(), app.CreateLinkRequest{
 				TaskRef: args[0],
@@ -148,7 +152,9 @@ func newLinkListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			items, err := manager.List(cmd.Context(), app.ListLinksRequest{TaskRef: args[0]})
 			if err != nil {
@@ -188,7 +194,9 @@ func newLinkRemoveCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			req := app.RemoveLinkRequest{
 				TaskRef: args[0],

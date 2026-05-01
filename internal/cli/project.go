@@ -42,7 +42,9 @@ func newProjectCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			project, err := manager.Create(cmd.Context(), app.CreateProjectRequest{
 				Name:               args[0],
@@ -93,7 +95,9 @@ func newProjectListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			items, err := manager.List(cmd.Context(), app.ListProjectsRequest{})
 			if err != nil {
@@ -133,7 +137,9 @@ func newProjectShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			project, err := manager.Show(cmd.Context(), app.ShowProjectRequest{Reference: args[0]})
 			if err != nil {
@@ -176,7 +182,9 @@ func newProjectUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			req := app.UpdateProjectRequest{Reference: args[0]}
 			if cmd.Flags().Changed("name") {
@@ -267,7 +275,9 @@ func newProjectStatusCommand(opts *GlobalOptions, use, short, statusValue string
 			if err != nil {
 				return lifecycleStatusResult{}, err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			project, err := manager.Update(cmd.Context(), app.UpdateProjectRequest{
 				Reference: reference,

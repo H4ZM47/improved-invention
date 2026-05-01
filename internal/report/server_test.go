@@ -27,7 +27,9 @@ func TestServerTaskListHTMLRendersFilteredTasks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("http.Get() error = %v", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if got, want := res.StatusCode, http.StatusOK; got != want {
 		t.Fatalf("StatusCode = %d, want %d", got, want)
@@ -59,7 +61,9 @@ func TestServerAPITasksReturnsFilteredJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("http.Get() error = %v", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if got, want := res.StatusCode, http.StatusOK; got != want {
 		t.Fatalf("StatusCode = %d, want %d", got, want)
@@ -119,7 +123,9 @@ func TestServerTaskDetailHTMLRendersLinksAndRelationships(t *testing.T) {
 	if err != nil {
 		t.Fatalf("http.Get() error = %v", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if got, want := res.StatusCode, http.StatusOK; got != want {
 		t.Fatalf("StatusCode = %d, want %d", got, want)
@@ -156,7 +162,7 @@ func TestServerRemainsReadOnly(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Do(%s) error = %v", path, err)
 		}
-		res.Body.Close()
+		_ = res.Body.Close()
 
 		if got, want := res.StatusCode, http.StatusMethodNotAllowed; got != want {
 			t.Fatalf("StatusCode for %s = %d, want %d", path, got, want)

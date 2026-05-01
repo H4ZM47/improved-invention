@@ -67,7 +67,9 @@ func TestTaskUpdateInteractivePromptCanKeepAssignee(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	task, err := taskdb.FindTask(context.Background(), db, taskHandle)
 	if err != nil {
@@ -102,7 +104,9 @@ func TestTaskListJSONIncludesFiltersAndSearch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	actorManager := app.ActorManager{
 		DB:        db,
@@ -303,7 +307,9 @@ func TestTaskUpdateDescriptionFileUsesContents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	manager := app.TaskManager{
 		DB:        db,
@@ -391,7 +397,9 @@ func seedReclassificationScenario(t *testing.T) (dbPath string, taskHandle strin
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	actorManager := app.ActorManager{
 		DB:        db,

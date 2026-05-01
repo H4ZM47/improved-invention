@@ -133,7 +133,9 @@ func ListRelationshipsForTask(ctx context.Context, db *sql.DB, taskReference str
 	if err != nil {
 		return nil, fmt.Errorf("list relationships: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var relationships []Relationship
 	for rows.Next() {
@@ -159,7 +161,9 @@ func ListRelationships(ctx context.Context, db *sql.DB) ([]Relationship, error) 
 	if err != nil {
 		return nil, fmt.Errorf("list relationships: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var relationships []Relationship
 	for rows.Next() {

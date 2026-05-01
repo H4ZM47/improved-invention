@@ -112,7 +112,9 @@ func TestSchemaSeedsHandleSequences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("query handle_sequences failed: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	got := map[string]int{}
 	for rows.Next() {

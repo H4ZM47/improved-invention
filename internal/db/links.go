@@ -138,7 +138,9 @@ func ListExternalLinksForTask(ctx context.Context, db *sql.DB, taskReference str
 	if err != nil {
 		return nil, fmt.Errorf("list external links: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var links []ExternalLink
 	for rows.Next() {
@@ -164,7 +166,9 @@ func ListExternalLinks(ctx context.Context, db *sql.DB) ([]ExternalLink, error) 
 	if err != nil {
 		return nil, fmt.Errorf("list external links: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var links []ExternalLink
 	for rows.Next() {

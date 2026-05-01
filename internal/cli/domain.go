@@ -41,7 +41,9 @@ func newDomainCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			domain, err := manager.Create(cmd.Context(), app.CreateDomainRequest{
 				Name:               args[0],
@@ -89,7 +91,9 @@ func newDomainListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			items, err := manager.List(cmd.Context(), app.ListDomainsRequest{})
 			if err != nil {
@@ -129,7 +133,9 @@ func newDomainShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			domain, err := manager.Show(cmd.Context(), app.ShowDomainRequest{Reference: args[0]})
 			if err != nil {
@@ -171,7 +177,9 @@ func newDomainUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			req := app.UpdateDomainRequest{Reference: args[0]}
 			if cmd.Flags().Changed("name") {
@@ -258,7 +266,9 @@ func newDomainStatusCommand(opts *GlobalOptions, use, short, statusValue string)
 			if err != nil {
 				return lifecycleStatusResult{}, err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			domain, err := manager.Update(cmd.Context(), app.UpdateDomainRequest{
 				Reference: reference,

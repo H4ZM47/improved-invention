@@ -38,7 +38,9 @@ func newMilestoneCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			milestone, err := manager.Create(cmd.Context(), app.CreateMilestoneRequest{
 				Name:        args[0],
@@ -80,7 +82,9 @@ func newMilestoneListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			items, err := manager.List(cmd.Context(), app.ListMilestonesRequest{})
 			if err != nil {
@@ -120,7 +124,9 @@ func newMilestoneShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			milestone, err := manager.Show(cmd.Context(), app.ShowMilestoneRequest{Reference: args[0]})
 			if err != nil {
@@ -159,7 +165,9 @@ func newMilestoneUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			req := app.UpdateMilestoneRequest{Reference: args[0]}
 			if cmd.Flags().Changed("name") {
@@ -233,7 +241,9 @@ func newMilestoneStatusCommand(opts *GlobalOptions, use, short, status string) *
 			if err != nil {
 				return lifecycleStatusResult{}, err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			milestone, err := manager.Update(cmd.Context(), app.UpdateMilestoneRequest{
 				Reference: reference,

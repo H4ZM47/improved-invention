@@ -32,7 +32,9 @@ func newBackupCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := taskdb.BackupDatabase(cmd.Context(), db, output); err != nil {
 				return err

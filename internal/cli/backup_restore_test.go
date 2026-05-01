@@ -105,7 +105,9 @@ func TestRestoreApplyRestoresArtifactIntoTargetDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open(restored) error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	task, err := taskdb.FindTask(context.Background(), db, "TASK-1")
 	if err != nil {
@@ -166,7 +168,9 @@ func seedBackupRestoreFixturesAtPath(t *testing.T, dbPath string) string {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	actorManager := app.ActorManager{DB: db, HumanName: "alex"}
 	human, err := actorManager.BootstrapConfiguredHumanActor(context.Background())

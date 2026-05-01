@@ -69,7 +69,9 @@ func ListSavedViews(ctx context.Context, db *sql.DB) ([]SavedView, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list saved views: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var views []SavedView
 	for rows.Next() {

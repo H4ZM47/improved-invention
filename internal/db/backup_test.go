@@ -23,7 +23,9 @@ func TestBackupDatabaseCreatesPortableArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(source) error = %v", err)
 	}
-	defer sourceDB.Close()
+	defer func() {
+		_ = sourceDB.Close()
+	}()
 
 	if err := taskdb.BackupDatabase(context.Background(), sourceDB, backupPath); err != nil {
 		t.Fatalf("BackupDatabase() error = %v", err)
@@ -34,7 +36,9 @@ func TestBackupDatabaseCreatesPortableArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(backup) error = %v", err)
 	}
-	defer backupDB.Close()
+	defer func() {
+		_ = backupDB.Close()
+	}()
 
 	assertBackupFixturePreserved(t, backupDB, expected)
 }
@@ -71,7 +75,9 @@ func TestRestoreDatabasePreservesIdentityAndHandleSequences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(restored) error = %v", err)
 	}
-	defer targetDB.Close()
+	defer func() {
+		_ = targetDB.Close()
+	}()
 
 	assertBackupFixturePreserved(t, targetDB, expected)
 
@@ -115,7 +121,9 @@ func TestOpenExpiresStaleClaims(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open(reopened) error = %v", err)
 	}
-	defer reopened.Close()
+	defer func() {
+		_ = reopened.Close()
+	}()
 
 	var releasedAt string
 	var reason string
@@ -135,16 +143,16 @@ func TestOpenExpiresStaleClaims(t *testing.T) {
 }
 
 type backupFixtureExpectation struct {
-	DomainHandle  string
+	DomainHandle    string
 	MilestoneHandle string
-	ProjectHandle string
-	TaskOneHandle string
-	TaskOneUUID   string
-	TaskTwoHandle string
-	TaskTwoUUID   string
-	ActorHandle   string
-	SavedViewName string
-	EventCount    int
+	ProjectHandle   string
+	TaskOneHandle   string
+	TaskOneUUID     string
+	TaskTwoHandle   string
+	TaskTwoUUID     string
+	ActorHandle     string
+	SavedViewName   string
+	EventCount      int
 }
 
 func seedBackupFixtureDB(t *testing.T) (string, backupFixtureExpectation) {
@@ -160,7 +168,9 @@ func seedBackupFixtureDB(t *testing.T) (string, backupFixtureExpectation) {
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	actorManager := app.ActorManager{DB: db, HumanName: "alex"}
 	human, err := actorManager.BootstrapConfiguredHumanActor(context.Background())

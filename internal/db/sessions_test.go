@@ -49,7 +49,9 @@ func TestTaskSessionLifecycleRecordsEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("query session events failed: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var got []string
 	for rows.Next() {

@@ -103,7 +103,9 @@ func TestLinkCommandsListAndRemoveTaskAndExternalLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	links, err := taskdb.ListExternalLinksForTask(context.Background(), db, taskHandle)
 	if err != nil {
@@ -165,7 +167,9 @@ func seedTwoClaimedTasks(t *testing.T) (dbPath string, firstTask string, secondT
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	manager := app.TaskManager{
 		DB:        db,

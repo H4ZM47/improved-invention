@@ -37,7 +37,9 @@ func newTaskCreateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			resolvedDescription, err := resolveDescriptionInput(
 				cmd,
@@ -117,7 +119,9 @@ func newTaskListCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := validateTaskListStatuses(statuses); err != nil {
 				return err
@@ -222,7 +226,9 @@ func newTaskShowCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			task, err := manager.Show(cmd.Context(), app.ShowTaskRequest{Reference: args[0]})
 			if err != nil {
@@ -278,7 +284,9 @@ func newTaskUpdateCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if keepAssignee && acceptDefaultAssignee {
 				return fmt.Errorf("grind update allows only one of --keep-assignee or --accept-default-assignee")
@@ -422,7 +430,9 @@ func newClaimAcquireCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			claim, err := manager.Claim(cmd.Context(), app.ClaimTaskRequest{
 				Reference: args[0],
@@ -459,7 +469,9 @@ func newClaimRenewCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			claim, err := manager.RenewClaim(cmd.Context(), app.RenewClaimRequest{
 				Reference: args[0],
@@ -496,7 +508,9 @@ func newClaimReleaseCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := manager.ReleaseClaim(cmd.Context(), app.ReleaseClaimRequest{Reference: args[0]}); err != nil {
 				return err
@@ -527,7 +541,9 @@ func newClaimUnlockCommand(opts *GlobalOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			if err := manager.Unlock(cmd.Context(), app.UnlockTaskRequest{Reference: args[0]}); err != nil {
 				return err
@@ -574,7 +590,9 @@ func newTaskStatusCommand(opts *GlobalOptions, use, short, statusValue string) *
 			if err != nil {
 				return lifecycleStatusResult{}, err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			task, err := manager.Update(cmd.Context(), app.UpdateTaskRequest{
 				Reference: reference,

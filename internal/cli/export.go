@@ -49,7 +49,9 @@ func newExportFormatCommand(opts *GlobalOptions, use, short string, encode bundl
 			if err != nil {
 				return err
 			}
-			defer db.Close()
+			defer func() {
+				_ = db.Close()
+			}()
 
 			bundle, err := buildExportBundle(ctx, db)
 			if err != nil {

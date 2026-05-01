@@ -157,7 +157,9 @@ func ListTasks(ctx context.Context, db *sql.DB, query TaskListQuery) ([]Task, er
 	if err != nil {
 		return nil, fmt.Errorf("list tasks: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var tasks []Task
 	for rows.Next() {

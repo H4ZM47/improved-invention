@@ -266,7 +266,9 @@ func loadManualTimeEvents(ctx context.Context, runner manualTimeEventQuerier, ta
 	if err != nil {
 		return nil, fmt.Errorf("load manual time events: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var events []manualTimeEventRecord
 	for rows.Next() {

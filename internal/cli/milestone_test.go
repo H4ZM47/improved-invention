@@ -23,7 +23,9 @@ func TestMilestoneLifecycleCommandsJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	if _, err := (app.ActorManager{DB: db, HumanName: "alex"}).BootstrapConfiguredHumanActor(context.Background()); err != nil {
 		t.Fatalf("BootstrapConfiguredHumanActor() error = %v", err)
@@ -102,7 +104,9 @@ func TestTaskListJSONSupportsMilestoneFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("taskdb.Open() error = %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	if _, err := (app.ActorManager{DB: db, HumanName: "alex"}).BootstrapConfiguredHumanActor(context.Background()); err != nil {
 		t.Fatalf("BootstrapConfiguredHumanActor() error = %v", err)
